@@ -1,6 +1,7 @@
 {
-  "name": "one-ok-todo",
+  "name": "one-ok-todo-desktop",
   "private": true,
+  "license": "MIT",
   "version": "0.1.0",
   "type": "module",
   "scripts": {
