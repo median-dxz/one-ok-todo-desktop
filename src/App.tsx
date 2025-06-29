@@ -1,50 +1,52 @@
-import { useState } from "preact/hooks";
-import preactLogo from "./assets/preact.svg";
-import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import {
+  FluentProvider,
+  makeResetStyles,
+  makeStyles,
+  mergeClasses,
+  tokens,
+  webLightTheme,
+} from '@fluentui/react-components';
+import { TodoArea } from './components/TodoArea';
+
+const useSidebarStyles = makeResetStyles({
+  display: 'flex',
+  flexDirection: 'column',
+  margin: tokens.spacingHorizontalS,
+  backgroundColor: tokens.colorNeutralBackground1,
+  borderRadius: tokens.borderRadiusXLarge,
+  boxShadow: `0 0 28px rgba(0, 0, 0, .08)`,
+  transition: `width 0.2s ${tokens.curveDecelerateMin}`,
+  overflow: 'hidden',
+  width: '15rem',
+  '@media (max-width: 600px)': {
+    display: 'none !important',
+  },
+});
+
+const useStyles = makeStyles({
+  root: {
+    display: 'flex',
+    height: '100vh',
+    backgroundColor: tokens.colorNeutralBackground2,
+  },
+  main: {
+    flex: 1,
+    minWidth: 0,
+    overflow: 'auto',
+    padding: tokens.spacingVerticalXXL,
+  },
+});
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
-
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+  const styles = { ...useStyles(), sidebar: useSidebarStyles() };
 
   return (
-    <main class="container">
-      <h1>Welcome to Tauri + Preact</h1>
-
-      <div class="row">
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" class="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" class="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://preactjs.com" target="_blank">
-          <img src={preactLogo} class="logo preact" alt="Preact logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and Preact logos to learn more.</p>
-
-      <form
-        class="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onInput={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+    <FluentProvider theme={webLightTheme} className={styles.root}>
+      <aside className={mergeClasses(styles.sidebar)}></aside>
+      <main className={styles.main}>
+        <TodoArea />
+      </main>
+    </FluentProvider>
   );
 }
 
