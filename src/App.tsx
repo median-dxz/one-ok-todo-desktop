@@ -5,8 +5,10 @@ import {
   mergeClasses,
   tokens,
   webLightTheme,
+  Text,
 } from '@fluentui/react-components';
 import { TodoArea } from './components/TodoArea';
+import './App.css';
 
 const useSidebarStyles = makeResetStyles({
   display: 'flex',
@@ -35,6 +37,16 @@ const useStyles = makeStyles({
     overflow: 'auto',
     padding: tokens.spacingVerticalXXL,
   },
+  metaContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: tokens.spacingVerticalXL,
+  },
+  metaTextContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    paddingLeft: '1rem',
+  },
 });
 
 function App() {
@@ -42,7 +54,15 @@ function App() {
 
   return (
     <FluentProvider theme={webLightTheme} className={styles.root}>
-      <aside className={mergeClasses(styles.sidebar)}></aside>
+      <aside className={mergeClasses(styles.sidebar)}>
+        <div className={styles.metaContainer}>
+          <img src="/favicon.svg" width={64} height={64} alt="Logo" />
+          <div className={styles.metaTextContainer}>
+            <Text size={600}>One OK Todo</Text>
+            <Text>v0.1.0</Text>
+          </div>
+        </div>
+      </aside>
       <main className={styles.main}>
         <TodoArea />
       </main>
