@@ -1,73 +1,40 @@
-import {
-  FluentProvider,
-  makeResetStyles,
-  makeStyles,
-  mergeClasses,
-  tokens,
-  webLightTheme,
-  Text,
-} from '@fluentui/react-components';
-import { TodoArea } from './components/TodoArea';
+import { Box, Flex, Text, useBreakpointValue } from '@chakra-ui/react';
 import './App.css';
+import { TodoArea } from './components/TodoArea';
 
-const useSidebarStyles = makeResetStyles({
-  display: 'flex',
-  flexDirection: 'column',
-  margin: tokens.spacingHorizontalS,
-  backgroundColor: tokens.colorNeutralBackground1,
-  borderRadius: tokens.borderRadiusXLarge,
-  boxShadow: `0 0 28px rgba(0, 0, 0, .08)`,
-  transition: `width 0.2s ${tokens.curveDecelerateMin}`,
-  overflow: 'hidden',
-  width: '15rem',
-  '@media (max-width: 600px)': {
-    display: 'none !important',
-  },
-});
-
-const useStyles = makeStyles({
-  root: {
-    display: 'flex',
-    height: '100vh',
-    backgroundColor: tokens.colorNeutralBackground2,
-  },
-  main: {
-    flex: 1,
-    minWidth: 0,
-    overflow: 'auto',
-    padding: tokens.spacingVerticalXXL,
-  },
-  metaContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    padding: tokens.spacingVerticalXL,
-  },
-  metaTextContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    paddingLeft: '1rem',
-  },
-});
-
-function App() {
-  const styles = { ...useStyles(), sidebar: useSidebarStyles() };
-
+export default function App() {
+  const sidebarDisplay = useBreakpointValue({ base: 'none', md: 'flex' });
   return (
-    <FluentProvider theme={webLightTheme} className={styles.root}>
-      <aside className={mergeClasses(styles.sidebar)}>
-        <div className={styles.metaContainer}>
-          <img src="/favicon.svg" width={64} height={64} alt="Logo" />
-          <div className={styles.metaTextContainer}>
-            <Text size={600}>One OK Todo</Text>
-            <Text>v0.1.0</Text>
-          </div>
-        </div>
-      </aside>
-      <main className={styles.main}>
+    <Flex height="100vh" bg="gray.50">
+      <Box
+        as="aside"
+        display={sidebarDisplay}
+        flexDirection="column"
+        alignItems="center"
+        m={2}
+        p={6}
+        bg="white"
+        borderRadius="xl"
+        boxShadow="lg"
+        transition="width 0.2s"
+        overflow="hidden"
+        width="14rem"
+      >
+        <Flex mb={4} alignItems="center">
+          <img src="/favicon.svg" width={48} height={48} alt="Logo" />
+          <Box ml={4} display="flex" flexDirection="column">
+            <Text fontSize="md" fontWeight="bold" whiteSpace="nowrap">
+              One OK Todo
+            </Text>
+            <Text fontSize="sm">v0.1.0</Text>
+          </Box>
+        </Flex>
+        <Box mb={4} />
+        <Box mt={4} display="flex"></Box>
+      </Box>
+      <Box as="main" flex={1} minW={0} overflow="auto" p={{ base: 2, md: 10 }}>
         <TodoArea />
-      </main>
-    </FluentProvider>
+      </Box>
+    </Flex>
   );
 }
-
-export default App;
