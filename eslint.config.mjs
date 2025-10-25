@@ -1,3 +1,4 @@
+// @ts-check
 import js from '@eslint/js';
 import globals from 'globals';
 import tsEslint from 'typescript-eslint';
@@ -5,14 +6,13 @@ import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import markdown from '@eslint/markdown';
-import { defineConfig } from 'eslint/config';
 import prettier from 'eslint-config-prettier/flat';
 
-export default defineConfig([
+export default tsEslint.config([
   {
     files: ['**/*.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     plugins: { js },
-    extends: ['js/recommended'],
+    extends: [js.configs.recommended],
   },
   {
     files: ['**/*.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
@@ -32,7 +32,7 @@ export default defineConfig([
     files: ['**/*.md'],
     plugins: { markdown },
     language: 'markdown/commonmark',
-    extends: ['markdown/recommended'],
+    extends: [markdown.configs.recommended],
   },
   prettier,
 ]);

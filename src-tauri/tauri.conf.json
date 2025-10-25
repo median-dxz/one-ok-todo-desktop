@@ -19,6 +19,15 @@
     ],
     "security": {
       "csp": null
+    },
+    "allowlist": {
+      "fs": {
+        "all": true,
+        "scope": ["*"]
+      },
+      "path": {
+        "all": true
+      }
     }
   },
   "bundle": {

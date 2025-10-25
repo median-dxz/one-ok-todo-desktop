@@ -1,19 +1,15 @@
----
-applyTo: "**/*.ts,**/*.tsx"
----
-
 # Chakra UI v3 Documentation for LLMs
 
 > Chakra UI is an accessible component system for building products with speed
 
 ## Documentation Sets
 
-- [Complete documentation](chakra-v3-docs-3h18hov5x-chakra-ui.vercel.app/llms-full.txt): The complete Chakra UI v3 documentation including all components, styling and theming
-- [Components](chakra-v3-docs-3h18hov5x-chakra-ui.vercel.app/llms-components.txt): Documentation for all components in Chakra UI v3.
-- [Charts](chakra-v3-docs-3h18hov5x-chakra-ui.vercel.app/llms-charts.txt): Documentation for the charts in Chakra UI v3.
-- [Styling](chakra-v3-docs-3h18hov5x-chakra-ui.vercel.app/llms-styling.txt): Documentation for the styling system in Chakra UI v3.
-- [Theming](chakra-v3-docs-3h18hov5x-chakra-ui.vercel.app/llms-theming.txt): Documentation for theming Chakra UI v3.
-- [Migrating to v3](chakra-v3-docs-3h18hov5x-chakra-ui.vercel.app/llms-v3-migration.txt): Documentation for migrating to Chakra UI v3.
+- [Complete documentation](https://chakra-ui.com/llms-full.txt): The complete Chakra UI v3 documentation including all components, styling and theming
+- [Components](https://chakra-ui.com/llms-components.txt): Documentation for all components in Chakra UI v3.
+- [Charts](https://chakra-ui.com/llms-charts.txt): Documentation for the charts in Chakra UI v3.
+- [Styling](https://chakra-ui.com/llms-styling.txt): Documentation for the styling system in Chakra UI v3.
+- [Theming](https://chakra-ui.com/llms-theming.txt): Documentation for theming Chakra UI v3.
+- [Migrating to v3](https://chakra-ui.com/llms-v3-migration.txt): Documentation for migrating to Chakra UI v3.
 
 ## Notes
 
