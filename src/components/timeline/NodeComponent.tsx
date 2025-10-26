@@ -2,7 +2,7 @@ import { Box, Heading, HStack, VStack, Icon } from '@chakra-ui/react';
 import type { FC } from 'react';
 import { useSetAtom } from 'jotai';
 import { FaCheck } from 'react-icons/fa';
-import type { GroupNode, TimelineNode as Node } from '@/types/timeline';
+import type { GroupNode, TaskTimelineNode as Node } from '@/types/timeline';
 import { selectedNodeIdAtom } from '@/store/timelineGroups';
 
 import SubTaskComponent from './SubTaskComponent';

@@ -1,6 +1,6 @@
 import { atom } from 'jotai';
 import { timelineGroupsAtom } from '../timelineGroups';
-import type { TimelineNode as Node, TimelineGroup } from '@/types/timeline';
+import type { TaskTimelineNode as Node, TimelineGroup } from '@/types/timeline';
 import { produce } from 'immer';
 import { nanoid } from 'nanoid';
 

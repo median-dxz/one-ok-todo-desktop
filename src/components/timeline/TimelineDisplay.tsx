@@ -1,6 +1,6 @@
 import { completeRecurrenceInstanceAtom } from '@/store/actions/timelineActions';
 import { selectedNodeIdAtom, timelineGroupsAtom } from '@/store/timelineGroups';
-import type { Timeline, TimelineNode } from '@/types/timeline';
+import type { Timeline, TaskTimelineNode } from '@/types/timeline';
 import { generateRecurrenceInstances } from '@/utils/recurrenceLogic';
 import { Box, Flex, VisuallyHidden } from '@chakra-ui/react';
 import { useAtom, useAtomValue, useSetAtom } from 'jotai';
@@ -17,7 +17,7 @@ const STATUS_COLORS = {
   todo: '#605e5c', // Neutral Gray
 };
 
-const NodeComponent = ({ node, x, y }: { node: TimelineNode; x: number; y: number }) => {
+const NodeComponent = ({ node, x, y }: { node: TaskTimelineNode; x: number; y: number }) => {
   const [isHovered, setIsHovered] = useState(false);
   const selectedNodeId = useAtomValue(selectedNodeIdAtom);
   const isSelected = selectedNodeId === node.id;

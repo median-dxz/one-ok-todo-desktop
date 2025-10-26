@@ -38,4 +38,20 @@ export default defineConfig(async () => ({
       ignored: ['**/src-tauri/**'],
     },
   },
+
+  // Vitest 配置
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './tests/ui/setup.ts',
+    include: ['tests/ui/**/*.{test,spec}.{ts,tsx}'],
+    typecheck: {
+      tsconfig: './tsconfig.test.json',
+    },
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html', 'json'],
+      exclude: ['tests/**', '**/*.config.*', '**/mockData.ts', 'src-tauri/**'],
+    },
+  },
 }));

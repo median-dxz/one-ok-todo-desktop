@@ -1,3 +1,9 @@
+declare var process: {
+  env: {
+    CI?: string;
+  };
+};
+
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({

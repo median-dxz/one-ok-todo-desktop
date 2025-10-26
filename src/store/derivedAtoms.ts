@@ -1,9 +1,9 @@
 import { atom } from 'jotai';
 import { selectedNodeIdAtom } from './timelineGroups';
-import type { TimelineNode } from '@/types/timeline';
+import type { TaskTimelineNode } from '@/types/timeline';
 import { timelineGroupsAtom } from './timelineGroups';
 
-export const selectedNodeAtom = atom<TimelineNode | null>((get) => {
+export const selectedNodeAtom = atom<TaskTimelineNode | null>((get) => {
   const timelineGroups = get(timelineGroupsAtom);
   const selectedNodeId = get(selectedNodeIdAtom);
 

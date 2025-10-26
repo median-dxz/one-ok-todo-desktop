@@ -1,4 +1,4 @@
-import type { BaseNode, TimelineNode as Node, Timeline } from '@/types/timeline';
+import type { BaseNode, TaskTimelineNode as Node, Timeline } from '@/types/timeline';
 
 export function computeDoingStatus(node: Node, timeline: Timeline): boolean {
   if (node.type === 'group') {

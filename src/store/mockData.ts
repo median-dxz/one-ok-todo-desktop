@@ -10,31 +10,33 @@ export const initialTimelineGroups: TimelineGroup[] = [
       {
         id: 'visa-timeline',
         title: '签证办理',
-        status: 'done',
         nodes: [
-          { id: 'visa-prep', type: 'task', title: '准备签证材料', status: 'done' },
-          { id: 'visa-submit', type: 'task', title: '提交申请', status: 'done', depends_on: ['visa-prep'] },
-          { id: 'visa-get', type: 'task', title: '领取签证', status: 'done', depends_on: ['visa-submit'] },
-        ],
-        dependencies: [
-          { id: 'dep-visa-1', type: 'normal', from: 'visa-prep', to: 'visa-submit' },
-          { id: 'dep-visa-2', type: 'normal', from: 'visa-submit', to: 'visa-get' },
+          { id: 'visa-prep', type: 'task', title: '准备签证材料', status: 'done', prevs: [], succs: ['visa-submit'] },
+          {
+            id: 'visa-submit',
+            type: 'task',
+            title: '提交申请',
+            status: 'done',
+            prevs: ['visa-prep'],
+            succs: ['visa-get'],
+          },
+          { id: 'visa-get', type: 'task', title: '领取签证', status: 'done', prevs: ['visa-submit'], succs: [] },
         ],
       },
       {
         id: 'travel-prep',
         title: '旅行准备',
-        status: 'doing',
         nodes: [
           {
             id: 'booking-group',
-            type: 'group',
+            type: 'task',
             title: '预订事项',
             status: 'lock',
-            depends_on_timeline: ['visa-timeline'], // 依赖于整个'签证办理'时间线
+            prevs: [],
+            succs: ['pack-stuff'],
             subtasks: [
-              { id: 'book-flight', title: '订机票', status: 'todo' },
-              { id: 'book-hotel', title: '订酒店', status: 'todo' },
+              { id: 'book-flight', type: 'sub-task', title: '订机票', status: 'todo' },
+              { id: 'book-hotel', type: 'sub-task', title: '订酒店', status: 'todo' },
             ],
           },
           {
@@ -42,13 +44,9 @@ export const initialTimelineGroups: TimelineGroup[] = [
             type: 'task',
             title: '整理行李',
             status: 'lock',
-            depends_on: ['booking-group'],
+            prevs: ['booking-group'],
+            succs: [],
           },
-        ],
-        dependencies: [
-          // 跨时间线依赖在数据模型中定义，但可视化需要特殊处理
-          // 这里用普通依赖模拟组内关系
-          { id: 'dep-travel-1', type: 'normal', from: 'booking-group', to: 'pack-stuff' },
         ],
       },
     ],
@@ -60,49 +58,62 @@ export const initialTimelineGroups: TimelineGroup[] = [
       {
         id: 'learn-konva',
         title: '学习 Konva.js',
-        status: 'doing',
         nodes: [
-          { id: 'konva-docs', type: 'task', title: '阅读官方文档', status: 'done' },
+          { id: 'konva-docs', type: 'task', title: '阅读官方文档', status: 'done', prevs: [], succs: ['konva-demo'] },
           {
             id: 'konva-demo',
             type: 'task',
             title: '完成5个小 Demo',
-            status: 'doing',
-            depends_on: ['konva-docs'],
+            status: 'todo',
+            prevs: ['konva-docs'],
+            succs: ['konva-integrate'],
             mode: {
               mode: 'quantitative',
               quantitativeConfig: {
                 target: 5,
                 current: 2,
-                unit: '个',
               },
             },
           },
-          { id: 'konva-integrate', type: 'task', title: '集成到项目中', status: 'lock', depends_on: ['konva-demo'] },
-        ],
-        dependencies: [
-          { id: 'dep-konva-1', type: 'normal', from: 'konva-docs', to: 'konva-demo' },
-          { id: 'dep-konva-2', type: 'normal', from: 'konva-demo', to: 'konva-integrate' },
+          {
+            id: 'konva-integrate',
+            type: 'task',
+            title: '集成到项目中',
+            status: 'lock',
+            prevs: ['konva-demo'],
+            succs: [],
+          },
         ],
       },
       {
         id: 'weekly-routine',
         title: '每周例行',
-        nodes: [], // 循环任务没有固定节点
-        recurrence: {
-          frequency: 'weekly',
-          weeklyConfig: {
-            weekdays: [1, 3, 5], // 周一、三、五
+        completedTasks: [
+          {
+            taskTitle: '阅读技术文章',
+            scheduledDate: '2025-10-20T00:00:00Z',
+            status: 'done',
+            completedDate: '2025-10-20T10:30:00Z',
           },
-          pattern: {
-            tasks: ['阅读技术文章', '健身1小时', '总结周报'],
-            currentIndex: 0,
+          {
+            taskTitle: '健身1小时',
+            scheduledDate: '2025-10-22T00:00:00Z',
+            status: 'done',
+            completedDate: '2025-10-22T18:00:00Z',
           },
-          stats: {
-            totalCompleted: 12,
-            totalSkipped: 2,
+          {
+            taskTitle: '总结周报',
+            scheduledDate: '2025-10-24T00:00:00Z',
+            status: 'skipped',
           },
-          active: true,
+        ],
+        frequency: {
+          weekdays: [1, 3, 5], // 周一、三、五
+          occurrencesPerWeek: 3,
+        },
+        pattern: {
+          tasks: ['阅读技术文章', '健身1小时', '总结周报'],
+          currentIndex: 0,
         },
       },
     ],
