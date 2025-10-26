@@ -1,6 +1,7 @@
 export type NodeStatus = 'todo' | 'done' | 'skipped' | 'lock';
-
 export type TaskMode = 'scheduled' | 'quantitative';
+export type NodeType = 'task' | 'sub-task';
+export type TimelineType = 'task-timeline' | 'recurrence-timeline';
 
 export interface TaskModeConfig {
   mode: TaskMode;
@@ -29,7 +30,7 @@ export interface Dependency {
 export interface BaseNode {
   id: string; // 节点唯一标识
   title: string; // 节点标题
-  type: string;
+  type: NodeType; // 节点类型
 
   status: NodeStatus; // 节点状态
 }
@@ -82,25 +83,30 @@ export interface RecurrencePattern {
 export interface RecurrenceInstance {
   taskTitle: string; // 当前任务标题（来自 pattern）
   scheduledDate: string; // 计划执行日期（ISO 8001）
-  status: Exclude<NodeStatus, 'todo' | 'doing' | 'lock'>; // 实例状态
+  status: NodeStatus; // 实例状态
   completedDate?: string; // 完成日期
 }
 
 export interface BaseTimeline {
   id: string; // 时间线唯一标识
   title: string; // 时间线标题
+  type: TimelineType; // 时间线类型
 }
 
 export interface TaskTimeline extends BaseTimeline {
+  type: 'task-timeline';
+
   nodes: TaskNode[]; // 节点列表（按执行顺序排列）
 }
 
 export interface RecurrenceTimeline extends BaseTimeline {
+  type: 'recurrence-timeline';
+
   completedTasks: RecurrenceInstance[];
 
   frequency: RecurrenceFrequency;
 
-  // 任务轮换
+  // 任务轮换模式
   pattern?: RecurrencePattern;
 }
 

@@ -1,9 +1,8 @@
 import { atom } from 'jotai';
-import { selectedNodeIdAtom } from './timelineGroups';
-import type { TaskTimelineNode } from '@/types/timeline';
-import { timelineGroupsAtom } from './timelineGroups';
+import { selectedNodeIdAtom, selectedTimelineGroupIdAtom, timelineGroupsAtom } from './timelineGroups';
+import type { TaskNode } from '@/types/timeline';
 
-export const selectedNodeAtom = atom<TaskTimelineNode | null>((get) => {
+export const selectedNodeAtom = atom<TaskNode | null>((get) => {
   const timelineGroups = get(timelineGroupsAtom);
   const selectedNodeId = get(selectedNodeIdAtom);
 
@@ -13,12 +12,20 @@ export const selectedNodeAtom = atom<TaskTimelineNode | null>((get) => {
 
   for (const group of timelineGroups) {
     for (const timeline of group.timelines) {
-      const foundNode = timeline.nodes.find((node) => node.id === selectedNodeId);
-      if (foundNode) {
-        return foundNode;
+      if ('nodes' in timeline) {
+        const foundNode = timeline.nodes.find((node) => node.id === selectedNodeId);
+        if (foundNode) {
+          return foundNode;
+        }
       }
     }
   }
 
   return null;
+});
+
+export const selectedTimelineGroupAtom = atom((get) => {
+  const groups = get(timelineGroupsAtom);
+  const selectedId = get(selectedTimelineGroupIdAtom);
+  return groups.find((g) => g.id === selectedId) ?? (groups.length > 0 ? groups[0] : null);
 });

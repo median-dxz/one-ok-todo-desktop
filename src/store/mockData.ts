@@ -5,11 +5,12 @@ import type { TimelineGroup } from '@/types/timeline';
 export const initialTimelineGroups: TimelineGroup[] = [
   {
     id: 'complex-project',
-    title: '复杂项目（展示多种依赖）',
+    title: '复杂项目 - 展示多种依赖',
     timelines: [
       {
         id: 'visa-timeline',
         title: '签证办理',
+        type: 'task-timeline',
         nodes: [
           { id: 'visa-prep', type: 'task', title: '准备签证材料', status: 'done', prevs: [], succs: ['visa-submit'] },
           {
@@ -26,6 +27,7 @@ export const initialTimelineGroups: TimelineGroup[] = [
       {
         id: 'travel-prep',
         title: '旅行准备',
+        type: 'task-timeline',
         nodes: [
           {
             id: 'booking-group',
@@ -58,6 +60,7 @@ export const initialTimelineGroups: TimelineGroup[] = [
       {
         id: 'learn-konva',
         title: '学习 Konva.js',
+        type: 'task-timeline',
         nodes: [
           { id: 'konva-docs', type: 'task', title: '阅读官方文档', status: 'done', prevs: [], succs: ['konva-demo'] },
           {
@@ -88,6 +91,7 @@ export const initialTimelineGroups: TimelineGroup[] = [
       {
         id: 'weekly-routine',
         title: '每周例行',
+        type: 'recurrence-timeline',
         completedTasks: [
           {
             taskTitle: '阅读技术文章',

@@ -2,27 +2,13 @@ import { Box, Heading, HStack, VStack, Icon } from '@chakra-ui/react';
 import type { FC } from 'react';
 import { useSetAtom } from 'jotai';
 import { FaCheck } from 'react-icons/fa';
-import type { GroupNode, TaskTimelineNode as Node } from '@/types/timeline';
+import type { TaskNode, SubTask } from '@/types/timeline';
 import { selectedNodeIdAtom } from '@/store/timelineGroups';
 
 import SubTaskComponent from './SubTaskComponent';
 
-interface GroupNodeProps {
-  node: GroupNode;
-}
-
-const GroupNodeComponent: FC<GroupNodeProps> = ({ node }) => {
-  return (
-    <VStack w="100%" align="stretch" gap={2} pl={4}>
-      {node.subtasks.map((subtask) => (
-        <SubTaskComponent key={subtask.id} subtask={subtask} />
-      ))}
-    </VStack>
-  );
-};
-
 interface NodeComponentProps {
-  node: Node;
+  node: TaskNode;
 }
 
 const NodeComponent: FC<NodeComponentProps> = ({ node }) => {
@@ -30,17 +16,18 @@ const NodeComponent: FC<NodeComponentProps> = ({ node }) => {
   const isLocked = node.status === 'lock';
 
   const getStatusStyles = () => {
+    if (node.milestone) {
+      return {
+        bg: 'blue.500',
+        borderColor: 'blue.500',
+      };
+    }
     switch (node.status) {
       case 'todo':
         return {
           borderColor: 'blue.500',
           borderWidth: 2,
           bg: 'white',
-        };
-      case 'doing':
-        return {
-          bg: 'blue.500',
-          borderColor: 'blue.500',
         };
       case 'done':
         return {
@@ -85,7 +72,13 @@ const NodeComponent: FC<NodeComponentProps> = ({ node }) => {
       </Box>
       <VStack align="stretch" gap={1} flex={1}>
         <Heading size="sm">{node.title}</Heading>
-        {node.type === 'group' && <GroupNodeComponent node={node} />}
+        {node.subtasks && node.subtasks.length > 0 && (
+          <VStack w="100%" align="stretch" gap={2} pl={4}>
+            {node.subtasks.map((subtask: SubTask) => (
+              <SubTaskComponent key={subtask.id} subtask={subtask} />
+            ))}
+          </VStack>
+        )}
       </VStack>
     </HStack>
   );

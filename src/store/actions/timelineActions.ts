@@ -1,158 +1,122 @@
 import { atom } from 'jotai';
 import { timelineGroupsAtom } from '../timelineGroups';
-import type { Dependency, Timeline, TaskTimelineNode as Node, TimelineGroup } from '@/types/timeline';
+import type { RecurrenceTimeline, TaskTimeline, TimelineGroup } from '@/types/timeline';
 import { nanoid } from 'nanoid';
-import { produce } from 'immer';
 
+// 添加时间线组
+export const addTimelineGroupAtom = atom(null, (_get, set, { title }: { title: string }) => {
+  const newGroup: TimelineGroup = {
+    id: nanoid(),
+    title,
+    timelines: [],
+  };
+
+  set(timelineGroupsAtom, (prev) => [...prev, newGroup]);
+});
+
+// 添加时间线到指定组
+export const addTimelineAtom = atom(null, (_get, set, { groupId, title }: { groupId: string; title: string }) => {
+  set(timelineGroupsAtom, (prev) =>
+    prev.map((group) => {
+      if (group.id === groupId) {
+        const newTimeline: TaskTimeline = {
+          id: nanoid(),
+          title,
+          type: 'task-timeline',
+          nodes: [],
+        };
+        return {
+          ...group,
+          timelines: [...group.timelines, newTimeline],
+        };
+      }
+      return group;
+    }),
+  );
+});
+
+// 完成循环任务实例
 export const completeRecurrenceInstanceAtom = atom(
   null,
-  (get, set, { timelineId }: { timelineId: string; instanceDate: string }) => {
-    const newGroups = produce(get(timelineGroupsAtom), (draft) => {
-      for (const group of draft) {
-        const timeline = group.timelines.find((t) => t.id === timelineId);
-        if (timeline && timeline.recurrence) {
-          const { pattern, stats } = timeline.recurrence;
-          stats.totalCompleted++;
-          stats.lastCompleted = new Date().toISOString();
-          if (pattern && pattern.tasks.length > 0) {
-            stats.byTask = stats.byTask || {};
-            const currentTaskIndex = pattern.currentIndex || 0;
-            const taskTitle = pattern.tasks[currentTaskIndex % pattern.tasks.length];
-            const taskStats = stats.byTask[taskTitle] || { completed: 0, skipped: 0 };
-            taskStats.completed++;
-            stats.byTask[taskTitle] = taskStats;
-            pattern.currentIndex = (currentTaskIndex + 1) % pattern.tasks.length;
+  (_get, set, { timelineId, instanceDate }: { timelineId: string; instanceDate: string }) => {
+    set(timelineGroupsAtom, (prev) =>
+      prev.map((group) => ({
+        ...group,
+        timelines: group.timelines.map((timeline) => {
+          if (timeline.id === timelineId && timeline.type === 'recurrence-timeline') {
+            const recurrenceTimeline = timeline as RecurrenceTimeline;
+            const { pattern, completedTasks } = recurrenceTimeline;
+
+            const newCompletedTasks = [
+              ...completedTasks,
+              {
+                taskTitle: 'completed',
+                scheduledDate: new Date().toISOString(),
+                status: 'done' as const,
+              },
+            ];
+
+            let newPattern = pattern;
+            if (pattern && pattern.tasks.length > 0) {
+              const currentTaskIndex = pattern.currentIndex || 0;
+              newPattern = {
+                ...pattern,
+                currentIndex: (currentTaskIndex + 1) % pattern.tasks.length,
+              };
+            }
+
+            return {
+              ...recurrenceTimeline,
+              completedTasks: newCompletedTasks,
+              pattern: newPattern,
+            };
           }
-        }
-      }
-    });
-    set(timelineGroupsAtom, newGroups);
+          return timeline;
+        }),
+      })),
+    );
   },
 );
 
+// 跳过循环任务实例
 export const skipRecurrenceInstanceAtom = atom(
   null,
-  (get, set, { timelineId }: { timelineId: string; instanceDate: string }) => {
-    const newGroups = produce(get(timelineGroupsAtom), (draft) => {
-      for (const group of draft) {
-        const timeline = group.timelines.find((t) => t.id === timelineId);
-        if (timeline && timeline.recurrence) {
-          const { pattern, stats } = timeline.recurrence;
-          stats.totalSkipped++;
-          stats.lastSkipped = new Date().toISOString();
-          if (pattern && pattern.tasks.length > 0) {
-            stats.byTask = stats.byTask || {};
-            const currentTaskIndex = pattern.currentIndex || 0;
-            const taskTitle = pattern.tasks[currentTaskIndex % pattern.tasks.length];
-            const taskStats = stats.byTask[taskTitle] || { completed: 0, skipped: 0 };
-            taskStats.skipped++;
-            stats.byTask[taskTitle] = taskStats;
-            pattern.currentIndex = (currentTaskIndex + 1) % pattern.tasks.length;
+  (_get, set, { timelineId, instanceDate }: { timelineId: string; instanceDate: string }) => {
+    set(timelineGroupsAtom, (prev) =>
+      prev.map((group) => ({
+        ...group,
+        timelines: group.timelines.map((timeline) => {
+          if (timeline.id === timelineId && timeline.type === 'recurrence-timeline') {
+            const recurrenceTimeline = timeline as RecurrenceTimeline;
+            const { pattern, completedTasks } = recurrenceTimeline;
+
+            const newCompletedTasks = [
+              ...completedTasks,
+              {
+                taskTitle: 'skipped',
+                scheduledDate: new Date().toISOString(),
+                status: 'skipped' as const,
+              },
+            ];
+
+            let newPattern = pattern;
+            if (pattern && pattern.tasks.length > 0) {
+              const currentTaskIndex = pattern.currentIndex || 0;
+              newPattern = {
+                ...pattern,
+                currentIndex: (currentTaskIndex + 1) % pattern.tasks.length,
+              };
+            }
+
+            return {
+              ...recurrenceTimeline,
+              completedTasks: newCompletedTasks,
+              pattern: newPattern,
+            };
           }
-        }
-      }
-    });
-    set(timelineGroupsAtom, newGroups);
-  },
-);
-
-export const forkTimelineAtom = atom(
-  null,
-  (get, set, { fromNodeId, newTimelineTitle }: { fromNodeId: string; newTimelineTitle: string }) => {
-    const newGroups = produce(get(timelineGroupsAtom), (draft) => {
-      let sourceNode: Node | null = null;
-      let sourceTimeline: Timeline | null = null;
-      let sourceGroup: TimelineGroup | null = null;
-
-      for (const group of draft) {
-        for (const timeline of group.timelines) {
-          const node = timeline.nodes.find((n) => n.id === fromNodeId);
-          if (node) {
-            sourceNode = node;
-            sourceTimeline = timeline;
-            sourceGroup = group;
-            break;
-          }
-        }
-        if (sourceNode) break;
-      }
-
-      if (!sourceNode || !sourceTimeline || !sourceGroup) {
-        console.error('Source node, timeline, or group not found for forking.');
-        return;
-      }
-
-      const newTimeline: Timeline = {
-        id: nanoid(),
-        title: newTimelineTitle,
-        nodes: [],
-        dependencies: [],
-        status: 'todo',
-      };
-
-      const copiedNode: Node = {
-        ...sourceNode,
-        id: nanoid(),
-        status: 'todo',
-        depends_on: [],
-        depends_on_timeline: [],
-      };
-      newTimeline.nodes.push(copiedNode);
-
-      const dependency: Dependency = {
-        id: nanoid(),
-        type: 'split',
-        from: fromNodeId,
-        to: [newTimeline.id],
-      };
-      sourceTimeline.dependencies = sourceTimeline.dependencies || [];
-      sourceTimeline.dependencies.push(dependency);
-
-      const groupToUpdate = draft.find((g) => g.id === sourceGroup!.id);
-      if (groupToUpdate) {
-        groupToUpdate.timelines.push(newTimeline);
-      }
-    });
-    set(timelineGroupsAtom, newGroups);
-  },
-);
-
-export const addTimelineDependencyAtom = atom(
-  null,
-  (get, set, { toNodeId, fromTimelineIds }: { toNodeId: string; fromTimelineIds: string[] }) => {
-    const newGroups = produce(get(timelineGroupsAtom), (draft) => {
-      let targetNode: Node | null = null;
-      let targetTimeline: Timeline | null = null;
-
-      for (const group of draft) {
-        for (const timeline of group.timelines) {
-          const node = timeline.nodes.find((n) => n.id === toNodeId);
-          if (node) {
-            targetNode = node;
-            targetTimeline = timeline;
-            break;
-          }
-        }
-        if (targetNode) break;
-      }
-
-      if (!targetNode || !targetTimeline) {
-        console.error('Target node or timeline not found for dependency.');
-        return;
-      }
-
-      const dependency: Dependency = {
-        id: nanoid(),
-        type: 'timeline',
-        from: fromTimelineIds,
-        to: toNodeId,
-      };
-
-      targetTimeline.dependencies = targetTimeline.dependencies || [];
-      targetTimeline.dependencies.push(dependency);
-
-      targetNode.depends_on_timeline = [...(targetNode.depends_on_timeline || []), ...fromTimelineIds];
-    });
-    set(timelineGroupsAtom, newGroups);
+          return timeline;
+        }),
+      })),
+    );
   },
 );

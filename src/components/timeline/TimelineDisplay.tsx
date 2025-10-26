@@ -1,29 +1,35 @@
-import { completeRecurrenceInstanceAtom } from '@/store/actions/timelineActions';
-import { selectedNodeIdAtom, timelineGroupsAtom } from '@/store/timelineGroups';
-import type { Timeline, TaskTimelineNode } from '@/types/timeline';
-import { generateRecurrenceInstances } from '@/utils/recurrenceLogic';
-import { Box, Flex, VisuallyHidden } from '@chakra-ui/react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import type { Stage as StageType } from 'konva/lib/Stage';
-import { Fragment, useLayoutEffect, useRef, useState } from 'react';
+import { Box, Button, Center, Flex, Heading, useDialog, VStack } from '@chakra-ui/react';
+import { useAtom, useSetAtom } from 'jotai';
+import { useEffect, useRef, useState } from 'react';
 import { Circle, Group, Layer, Path, Stage, Text } from 'react-konva';
+import { nanoid } from 'nanoid';
+
+import { FiCalendar } from 'react-icons/fi';
+import { LuPlus } from 'react-icons/lu';
+
+import { completeRecurrenceInstanceAtom } from '@/store/actions/timelineActions';
+import { selectedNodeIdAtom } from '@/store/timelineGroups';
+import type { TaskNode, Timeline, TimelineGroup } from '@/types/timeline';
+import { generateRecurrenceInstances } from '@/utils/recurrenceLogic';
+
+import { NewTimelineGroupDialog } from './NewTimelineGroupDialog';
 import { RightSidebar } from './RightSidebar';
 
 // Pattern colors for different statuses
 const STATUS_COLORS = {
   done: '#107c41', // Green
-  doing: '#0078d4', // Blue
   lock: '#d83b01', // Orange/Red
   todo: '#605e5c', // Neutral Gray
+  skipped: '#7a7573', // Lighter Gray
 };
 
-const NodeComponent = ({ node, x, y }: { node: TaskTimelineNode; x: number; y: number }) => {
+const NodeComponent = ({ node, x, y }: { node: TaskNode; x: number; y: number }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const selectedNodeId = useAtomValue(selectedNodeIdAtom);
+  const [selectedNodeId] = useAtom(selectedNodeIdAtom);
   const isSelected = selectedNodeId === node.id;
 
-  const radius = 14; // Increased radius
-  const hitRadius = 24; // Larger radius for click/hover area
+  const radius = 14;
+  const hitRadius = 24;
   const color = STATUS_COLORS[node.status as keyof typeof STATUS_COLORS] || STATUS_COLORS.todo;
 
   return (
@@ -45,19 +51,12 @@ const NodeComponent = ({ node, x, y }: { node: TaskTimelineNode; x: number; y: n
         }
       }}
     >
-      {/* Invisible hit area */}
       <Circle radius={hitRadius} fill="transparent" />
-
-      {/* Selection and Hover Indicator */}
       {(isSelected || isHovered) && (
         <Circle radius={isSelected ? radius + 4 : radius + 2} fill={color} opacity={isSelected ? 0.4 : 0.2} />
       )}
-
-      {/* Main Node Circle */}
       <Circle radius={radius} fill={color} />
-      {node.status === 'doing' && <Circle radius={radius - 4} fill="white" />}
-
-      {/* Node Title */}
+      {node.milestone && <Circle radius={radius - 4} fill="white" />}
       <Text
         text={node.title}
         x={radius + 12}
@@ -71,222 +70,202 @@ const NodeComponent = ({ node, x, y }: { node: TaskTimelineNode; x: number; y: n
   );
 };
 
-const renderIntraTimelineDependencies = (timeline: Timeline, nodePositions: Map<string, { x: number; y: number }>) => {
-  return (
-    timeline.dependencies
-      ?.map((dep) => {
-        const fromPos = nodePositions.get(dep.from as string);
-        const toPos = nodePositions.get(dep.to as string);
-
-        if (fromPos && toPos) {
-          const startX = fromPos.x;
-          const startY = fromPos.y;
-          const endX = toPos.x;
-          const endY = toPos.y;
-          const midX = startX + (endX - startX) / 2;
-
-          const pathData = `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`;
-
-          return <Path key={dep.id} data={pathData} stroke={STATUS_COLORS.done} strokeWidth={2.5} lineCap="round" />;
-        }
-        return null;
-      })
-      .filter(Boolean) ?? []
-  );
-};
-
-const renderInterTimelineDependencies = (
-  allTimelines: Timeline[],
-  nodePositions: Map<string, { x: number; y: number }>,
-  timelineEndPositions: Map<string, { x: number; y: number }>,
-) => {
+const renderDependencies = (timelines: Timeline[], nodePositions: Map<string, { x: number; y: number }>) => {
   const lines: Array<React.ReactElement> = [];
-  allTimelines.forEach((timeline) => {
-    timeline.nodes.forEach((node) => {
-      if (node.depends_on_timeline) {
-        node.depends_on_timeline.forEach((depTimelineId) => {
-          const fromPos = timelineEndPositions.get(depTimelineId);
-          const toPos = nodePositions.get(node.id);
+  const allNodes = timelines.flatMap((t) => ('nodes' in t ? t.nodes : []));
 
-          if (fromPos && toPos) {
-            const startX = fromPos.x;
-            const startY = fromPos.y;
-            const endX = toPos.x;
-            const endY = toPos.y;
-            const midY = startY + (endY - startY) / 2;
+  allNodes.forEach((node) => {
+    node.succs.forEach((succId) => {
+      const fromPos = nodePositions.get(node.id);
+      const toPos = nodePositions.get(succId);
 
-            const pathData = `M ${startX} ${startY} C ${startX} ${midY}, ${endX} ${midY}, ${endX} ${endY}`;
-            lines.push(
-              <Path
-                key={`${depTimelineId}-${node.id}`}
-                data={pathData}
-                stroke={STATUS_COLORS.lock}
-                strokeWidth={2.5}
-                lineCap="round"
-                dash={[10, 5]}
-              />,
-            );
-          }
-        });
+      if (fromPos && toPos) {
+        const startX = fromPos.x;
+        const startY = fromPos.y;
+        const endX = toPos.x;
+        const endY = toPos.y;
+        const midX = startX + (endX - startX) / 2;
+
+        const pathData = `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`;
+        lines.push(
+          <Path
+            key={`${node.id}-${succId}`}
+            data={pathData}
+            stroke={STATUS_COLORS.done}
+            strokeWidth={2.5}
+            lineCap="round"
+          />,
+        );
       }
     });
   });
   return lines;
 };
 
-export function TimelineDisplay() {
-  const timelineGroups = useAtomValue(timelineGroupsAtom);
-  const [selectedNodeId, setSelectedNodeId] = useAtom(selectedNodeIdAtom);
-  const completeRecurrenceInstance = useSetAtom(completeRecurrenceInstanceAtom);
+interface TimelineDisplayProps {
+  timelineGroup: TimelineGroup | null;
+}
 
-  // Layout parameters
+const EmptyScreen = () => {
+  const newTimelineGroupDialog = useDialog();
+
+  return (
+    <Center h="100%">
+      <VStack gap={4} textAlign="center">
+        <Box as="span" color="gray.500">
+          <FiCalendar size={48} />
+        </Box>
+        <Heading size="md">尚未选择时间线</Heading>
+        <Box color="gray.500">请在左侧选择一个时间线，或创建新的时间线开始添加任务。</Box>
+        <Button colorPalette="blue" variant="solid" size="sm" onClick={() => newTimelineGroupDialog.setOpen(true)}>
+          <LuPlus />
+          新建
+        </Button>
+        <NewTimelineGroupDialog control={newTimelineGroupDialog} />
+      </VStack>
+    </Center>
+  );
+};
+
+export function TimelineDisplay({ timelineGroup }: TimelineDisplayProps) {
+  if (timelineGroup == null) {
+    return <EmptyScreen />;
+  }
+
+  const setSelectedNodeId = useSetAtom(selectedNodeIdAtom);
+  const completeRecurrenceInstance = useSetAtom(completeRecurrenceInstanceAtom);
+  const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
+
   const nodeHorizontalGap = 200;
   const timelineVerticalGap = 70;
-  const groupVerticalGap = 50;
+
   const startX = 60;
 
   const nodePositions = new Map<string, { x: number; y: number }>();
-  const timelineEndPositions = new Map<string, { x: number; y: number }>();
   let currentY = 40;
 
-  const allTimelines = timelineGroups.flatMap((g) => g.timelines);
-
-  // Pre-calculate all node and timeline end positions
-  timelineGroups.forEach((group) => {
-    currentY += groupVerticalGap;
-    group.timelines.forEach((timeline) => {
-      timeline.nodes.forEach((node, nodeIndex) => {
+  timelineGroup.timelines.forEach((timeline: Timeline) => {
+    if ('nodes' in timeline) {
+      timeline.nodes.forEach((node: TaskNode, nodeIndex: number) => {
         const x = startX + nodeIndex * nodeHorizontalGap;
         const y = currentY;
         nodePositions.set(node.id, { x, y });
-
-        if (nodeIndex === timeline.nodes.length - 1) {
-          timelineEndPositions.set(timeline.id, { x, y });
-        }
       });
-      currentY += timelineVerticalGap;
-    });
+    }
+    currentY += timelineVerticalGap;
   });
+
+  const { timelines } = timelineGroup;
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const stageRef = useRef<StageType>(null);
-  let stage = (
-    <Stage ref={stageRef} draggable>
-      <Layer>
-        {timelineGroups.map((group) => (
-          <Group key={group.id}>
+
+  const layer = (
+    <Layer>
+      {timelines.map((timeline: Timeline) => {
+        const firstNodeId = 'nodes' in timeline ? timeline.nodes[0]?.id : undefined;
+        return (
+          <Group key={timeline.id}>
             <Text
-              text={group.title}
-              fontSize={20}
-              fontStyle="bold"
-              y={(nodePositions.get(group.timelines[0]?.nodes[0]?.id)?.y ?? 0) - 60}
-              x={startX - 30}
-              fill="#333"
-              fontFamily="Segoe UI, sans-serif"
+              text={timeline.title}
+              fontSize={16}
+              y={(nodePositions.get(firstNodeId ?? '')?.y ?? 0) - 35}
+              x={startX - 15}
+              fill="#555"
             />
-            {group.timelines.map((timeline) => (
-              <Group key={timeline.id}>
-                <Text
-                  text={timeline.title}
-                  fontSize={16}
-                  y={(nodePositions.get(timeline.nodes[0]?.id)?.y ?? 0) - 35}
-                  x={startX - 15}
-                  fill="#555"
-                  fontFamily="Segoe UI, sans-serif"
-                />
-                {renderIntraTimelineDependencies(timeline, nodePositions)}
-                {timeline.recurrence
-                  ? generateRecurrenceInstances(
-                      timeline,
-                      new Date(),
-                      new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-                    ).map((instance, index) => {
-                      const pos = {
-                        x: startX + index * nodeHorizontalGap,
-                        y: nodePositions.get(timeline.nodes[0]?.id)?.y || currentY,
-                      };
-                      return (
-                        <Group
-                          key={instance.id}
-                          onClick={() =>
-                            completeRecurrenceInstance({
-                              timelineId: instance.timelineId,
-                              instanceDate: instance.scheduledDate,
-                            })
-                          }
-                          onTap={() =>
-                            completeRecurrenceInstance({
-                              timelineId: instance.timelineId,
-                              instanceDate: instance.scheduledDate,
-                            })
-                          }
-                        >
-                          <NodeComponent
-                            node={
-                              {
-                                ...instance,
-                                title: instance.taskTitle,
-                                type: 'task',
-                              } as any
-                            }
-                            x={pos.x}
-                            y={pos.y}
-                          />
-                        </Group>
-                      );
-                    })
-                  : timeline.nodes.map((node) => {
-                      const pos = nodePositions.get(node.id);
-                      if (!pos) return null;
-                      return (
-                        <Group
-                          key={node.id}
-                          onClick={() => setSelectedNodeId(node.id)}
-                          onTap={() => setSelectedNodeId(node.id)}
-                        >
-                          <NodeComponent node={node} x={pos.x} y={pos.y} />
-                        </Group>
-                      );
-                    })}
-              </Group>
-            ))}
+            {timeline.type === 'recurrence-timeline'
+              ? generateRecurrenceInstances(timeline, new Date(), new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)).map(
+                  (instance, index) => {
+                    const yPos = nodePositions.get(timeline.id)?.y || currentY;
+                    const xPos = startX + index * nodeHorizontalGap;
+                    const id = nanoid();
+                    const nodeForRender: TaskNode = {
+                      id,
+                      title: instance.taskTitle,
+                      status: instance.status,
+                      type: 'task',
+                      prevs: [],
+                      succs: [],
+                    };
+                    return (
+                      <Group
+                        key={id}
+                        onClick={() =>
+                          completeRecurrenceInstance({
+                            timelineId: timeline.id,
+                            instanceDate: instance.scheduledDate,
+                          })
+                        }
+                      >
+                        <NodeComponent node={nodeForRender} x={xPos} y={yPos} />
+                      </Group>
+                    );
+                  },
+                )
+              : timeline.nodes.map((node: TaskNode) => {
+                  const pos = nodePositions.get(node.id);
+                  if (!pos) return null;
+                  return (
+                    <Group
+                      key={node.id}
+                      onClick={() => setSelectedNodeId(node.id)}
+                      onTap={() => setSelectedNodeId(node.id)}
+                    >
+                      <NodeComponent node={node} x={pos.x} y={pos.y} />
+                    </Group>
+                  );
+                })}
           </Group>
-        ))}
-        {renderInterTimelineDependencies(allTimelines, nodePositions, timelineEndPositions)}
-      </Layer>
-    </Stage>
+        );
+      })}
+      {renderDependencies(timelines, nodePositions)}
+    </Layer>
   );
 
-  const handleResize = () => {
-    if (
-      containerRef.current &&
-      stageRef.current &&
-      containerRef.current.clientWidth > 100 &&
-      containerRef.current.clientHeight > 50
-    ) {
-      stageRef.current.width(containerRef.current?.clientWidth);
-      stageRef.current.height(containerRef.current?.clientHeight);
-    }
-  };
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
 
-  useLayoutEffect(() => {
-    handleResize();
-  });
+    const rect = el.getBoundingClientRect();
+    setStageSize({ width: rect.width, height: rect.height });
+
+    const ro = new ResizeObserver((entries) => {
+      const r = entries[0].contentRect;
+      setStageSize({ width: r.width, height: r.height });
+    });
+
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   return (
-    <Flex height="100%" width="100%">
+    <Flex h="100%">
       <Box
         id="timeline-container"
         ref={containerRef}
         css={{
-          width: '100%',
-          height: '100%',
+          flex: 1,
           position: 'relative',
+          h: '100%',
+          overflow: 'hidden',
+          minW: 0,
         }}
       >
-        {stage}
+        <Stage
+          width={stageSize.width}
+          height={stageSize.height}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            display: 'block',
+          }}
+          draggable
+        >
+          {layer}
+        </Stage>
       </Box>
-
       <RightSidebar />
     </Flex>
   );

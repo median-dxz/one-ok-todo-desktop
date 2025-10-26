@@ -5,79 +5,51 @@ import {
   Flex,
   Grid,
   GridItem,
+  Presence,
   Separator,
   Spacer,
   Text,
+  useDialog,
   VStack,
-  type ButtonProps,
+  type PresenceProps,
 } from '@chakra-ui/react';
-import { useAtom, useSetAtom } from 'jotai';
-import { useMemo, useState } from 'react';
-import { MemoDisplay } from './components/memo/MemoDisplay';
-import { PersistenceProvider } from './components/PersistenceProvider';
-import { TimelineDisplay } from './components/timeline/TimelineDisplay';
-import { viewAtom, type ViewType } from './store/appAtom';
-import { loadDataAtom } from './store/persistence';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useState, type ReactElement } from 'react';
 
 import './App.css';
 
-import { FaEdit, FaEye } from 'react-icons/fa';
-import { FiRefreshCw } from 'react-icons/fi';
+import { FiEdit, FiEye, FiList, FiRefreshCw } from 'react-icons/fi';
+import { LuPlus } from 'react-icons/lu';
+
+import { MemoDisplay } from '@/components/memo/MemoDisplay';
+import { PersistenceProvider } from '@/components/PersistenceProvider';
+import { TimelineDisplay } from '@/components/timeline/TimelineDisplay';
+import { TabButton } from '@/components/ui/TabButton';
+import { viewAtom } from '@/store/appAtom';
+import { selectedTimelineGroupAtom } from '@/store/derivedAtoms';
+import { loadDataAtom } from '@/store/persistence';
+import { selectedTimelineGroupIdAtom, timelineGroupsAtom } from '@/store/timelineGroups';
+
+import { NewTimelineGroupDialog } from '@/components/timeline/NewTimelineGroupDialog';
 
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
 
-const TabsButton = ({
-  view,
-  children,
-  ...buttonProps
-}: {
-  view: ViewType;
-} & ButtonProps) => {
-  const [currentView, setView] = useAtom(viewAtom);
-
-  const buttonStyles = useMemo(
-    () =>
-      ({
-        colorPalette: currentView === view ? 'blue' : 'gray',
-        onClick: () => setView(view),
-        width: '100%',
-        gap: 2,
-        justifyContent: 'flex-start',
-        variant: currentView === view ? 'subtle' : 'ghost',
-      }) satisfies Partial<ButtonProps>,
-    [currentView, view],
-  );
-
-  const selected = view === currentView;
-
-  return (
-    <Box position="relative">
-      {selected ? (
-        <Box
-          css={{
-            bgColor: 'blue.500/75',
-            position: 'absolute',
-            left: '-0.125rem',
-            height: '75%',
-            width: '0.25rem',
-            rounded: 'md',
-            transform: 'translateY(12.5%)',
-            zIndex: 10,
-            pointerEvents: 'none',
-          }}
-        />
-      ) : null}
-      <Button {...buttonStyles} {...buttonProps}>
-        {children}
-      </Button>
-    </Box>
-  );
+const syncStatusColors = {
+  idle: 'gray',
+  syncing: 'blue',
+  success: 'green',
+  error: 'red',
 };
 
 function App() {
-  const [currentView] = useAtom(viewAtom);
+  const [currentViewType, setView] = useAtom(viewAtom);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
   const reloadData = useSetAtom(loadDataAtom);
+
+  const newTimelineGroupDialog = useDialog();
+  const setSelectedTimelineGroupId = useSetAtom(selectedTimelineGroupIdAtom);
+  const timelineGroups = useAtomValue(timelineGroupsAtom);
+  const currentTimelineGroup = useAtomValue(selectedTimelineGroupAtom);
 
   const handleSync = async () => {
     setSyncStatus('syncing');
@@ -100,60 +72,125 @@ function App() {
     }
   };
 
-  const syncStatusColors = {
-    idle: 'gray',
-    syncing: 'blue',
-    success: 'green',
-    error: 'red',
+  let view: ReactElement = <></>;
+  const presenceStyle: PresenceProps = {
+    css: {
+      display: 'flex',
+      flexDirection: 'column',
+      h: 'full',
+      alignItems: 'stretch',
+      gap: 1,
+    },
+    animationName: { _open: 'scale-in, fade-in' },
+    animationDuration: 'moderate',
   };
+
+  switch (currentViewType) {
+    case 'timeline':
+      view = <TimelineDisplay timelineGroup={currentTimelineGroup} />;
+      break;
+    case 'memo':
+      view = <MemoDisplay />;
+      break;
+    default:
+      break;
+  }
 
   return (
     <>
       <PersistenceProvider />
-      <Grid
-        templateAreas={`"nav main"
-                        "nav footer"`}
-        gridTemplateRows="1fr 40px"
-        gridTemplateColumns="240px 1fr"
-        h="100vh"
-      >
-        <GridItem bg="gray.50" area="nav">
-          <Flex direction="column" h="100%">
-            <Flex alignItems="center" justifyContent="center" p={4} gap={2}>
+      <Grid templateAreas={`"nav main"`} gridTemplateColumns="18em 1fr" h="100vh" w="100vw" bg="gray.100">
+        <GridItem area="nav" p={2}>
+          <Flex
+            css={{
+              bgColor: 'white',
+              h: '100%',
+              rounded: 'lg',
+              boxShadow: 'md',
+              p: 4,
+            }}
+            gap={4}
+            direction="column"
+            as="nav"
+          >
+            <Flex alignItems="center" justifyContent="start" gap={2}>
               <img src="/favicon.svg" width={36} />
               <Text fontSize="xl" fontWeight="bold" textAlign="center">
                 One OK Todo
               </Text>
             </Flex>
-            <VStack alignItems="stretch" p={2}>
-              <TabsButton view={'timeline'} aria-label="Timeline View">
-                <FaEye />
-                Timeline
-              </TabsButton>
 
-              <TabsButton view={'memo'} aria-label="Memo View">
-                <FaEdit />
+            <VStack alignItems="stretch" gap={1}>
+              <TabButton view="timeline" aria-label="Timeline View">
+                <FiEye />
+                Timeline
+              </TabButton>
+              <TabButton view="memo" aria-label="Memo View">
+                <FiEdit />
                 Memo
-              </TabsButton>
+              </TabButton>
             </VStack>
-            <Spacer />
-            <VStack>
-              <Separator />
-              <Flex p={2} align="center" w="100%">
-                <Button size="sm" variant="ghost" onClick={handleSync} loading={syncStatus === 'syncing'} gap={2}>
-                  <FiRefreshCw />
-                  Sync
-                </Button>
+
+            {/* 项目组区域 */}
+            <Separator />
+
+            {/* 时间线组区域 */}
+
+            <Box flex={1}>
+              <Presence present={currentViewType === 'timeline'} {...presenceStyle}>
+                <VStack alignItems="stretch" gap={1}>
+                  {timelineGroups.map((group) => (
+                    <Button
+                      key={group.id}
+                      size="sm"
+                      justifyContent="flex-start"
+                      variant={currentTimelineGroup?.id === group.id ? 'subtle' : 'ghost'}
+                      onClick={() => {
+                        setSelectedTimelineGroupId(group.id);
+                        setView('timeline');
+                      }}
+                    >
+                      <FiList /> {group.title}
+                    </Button>
+                  ))}
+                </VStack>
+
                 <Spacer />
-                <Badge colorPalette={syncStatusColors[syncStatus]}>{syncStatus}</Badge>
-              </Flex>
-            </VStack>
+                <Button variant="outline" onClick={() => newTimelineGroupDialog.setOpen(true)}>
+                  <LuPlus />
+                  新建
+                </Button>
+                <NewTimelineGroupDialog control={newTimelineGroupDialog} />
+              </Presence>
+
+              <Presence present={currentViewType === 'memo'} {...presenceStyle}>
+                memo
+              </Presence>
+            </Box>
+
+            <Separator />
+            <Flex align="center" w="100%">
+              <Button size="sm" variant="ghost" onClick={handleSync} loading={syncStatus === 'syncing'}>
+                <FiRefreshCw />
+                Sync
+              </Button>
+              <Spacer />
+              <Badge colorPalette={syncStatusColors[syncStatus]}>{syncStatus}</Badge>
+            </Flex>
           </Flex>
         </GridItem>
-        <GridItem area="main" overflowY="auto">
-          {currentView === 'timeline' ? <TimelineDisplay /> : <MemoDisplay />}
+        <GridItem area="main" p={2}>
+          <Presence
+            present
+            h="full"
+            key={currentViewType}
+            animationName={{ _open: 'fade-in', _closed: 'fade-out' }}
+            animationDuration="moderate"
+            unmountOnExit
+          >
+            {view}
+          </Presence>
         </GridItem>
-        <GridItem area="footer">Footer</GridItem>
       </Grid>
     </>
   );

@@ -1,10 +1,12 @@
-import type { RecurrenceInstance, Timeline } from '@/types/timeline';
+import type { Timeline, RecurrenceTimeline, RecurrenceInstance } from '@/types/timeline';
 
 export function generateRecurrenceInstances(timeline: Timeline, startDate: Date, endDate: Date): RecurrenceInstance[] {
-  if (!timeline.recurrence || !timeline.recurrence.active) return [];
+  if (!('completedTasks' in timeline)) return [];
+
+  const recurrenceTimeline = timeline as RecurrenceTimeline;
+  const { frequency, pattern } = recurrenceTimeline;
 
   const instances: RecurrenceInstance[] = [];
-  const { frequency, pattern, weeklyConfig, monthlyConfig } = timeline.recurrence;
 
   const current = new Date(startDate);
   current.setHours(0, 0, 0, 0); // Start from the beginning of the day
@@ -14,33 +16,24 @@ export function generateRecurrenceInstances(timeline: Timeline, startDate: Date,
   while (current <= endDate) {
     let shouldGenerate = false;
 
-    switch (frequency) {
-      case 'daily':
-        shouldGenerate = true;
-        break;
-      case 'weekly':
-        if (weeklyConfig) {
-          const weekday = current.getDay();
-          shouldGenerate = weeklyConfig.weekdays.includes(weekday);
-        }
-        break;
-      case 'monthly':
-        if (monthlyConfig) {
-          const day = current.getDate();
-          shouldGenerate = monthlyConfig.days.includes(day);
-        }
-        break;
+    if (frequency === 'daily') {
+      shouldGenerate = true;
+    } else if ('weekdays' in frequency) {
+      const weekday = current.getDay();
+      shouldGenerate = frequency.weekdays.includes(weekday);
+    } else if ('days' in frequency) {
+      const day = current.getDate();
+      shouldGenerate = frequency.days.includes(day);
     }
 
     if (shouldGenerate) {
       const taskTitle = pattern?.tasks[patternIndex % (pattern.tasks.length || 1)] || timeline.title;
 
       instances.push({
-        id: `${timeline.id}-${current.toISOString().split('T')[0]}`,
-        timelineId: timeline.id,
         taskTitle,
         scheduledDate: current.toISOString(),
-        status: 'todo',
+        completedDate: '',
+        status: 'done',
       });
 
       patternIndex++;
