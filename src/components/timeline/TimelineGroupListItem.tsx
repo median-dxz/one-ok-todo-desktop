@@ -2,9 +2,8 @@ import { Flex, IconButton, Menu, Portal, Text, type SystemStyleObject } from '@c
 import { useSetAtom } from 'jotai';
 import { FiEdit, FiList, FiMoreVertical, FiTrash2 } from 'react-icons/fi';
 
-import { deleteTimelineGroupAtom } from '@/store/actions/timelineActions';
 import { viewAtom } from '@/store/appAtom';
-import { selectedTimelineGroupIdAtom, timelineGroupsAtom } from '@/store/timelineGroups';
+import { deleteTimelineGroupAtom, selectedTimelineGroupIdAtom } from '@/store/timelineGroups';
 import type { TimelineGroup } from '@/types/timeline';
 
 interface TimelineListItemProps {
@@ -19,7 +18,6 @@ export function TimelineGroupListItem({ group, onEdit, slotId, itemId, selected 
   const setCurrentId = useSetAtom(selectedTimelineGroupIdAtom);
   const deleteGroup = useSetAtom(deleteTimelineGroupAtom);
   const setView = useSetAtom(viewAtom);
-  const setGroups = useSetAtom(timelineGroupsAtom);
 
   const handleSelect = () => {
     setCurrentId(group.id);

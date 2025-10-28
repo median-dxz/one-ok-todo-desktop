@@ -1,8 +1,10 @@
-import { atom } from 'jotai';
-import { timelineGroupsAtom } from '../timelineGroups';
-import type { RecurrenceTimeline, TaskTimeline, TimelineGroup } from '@/types/timeline';
-import { nanoid } from 'nanoid';
 import { produce } from 'immer';
+import { atom } from 'jotai';
+import { nanoid } from 'nanoid';
+
+import type { RecurrenceTimeline, TaskTimeline, TimelineGroup } from '@/types/timeline';
+
+import { selectedTimelineGroupIdAtom, timelineGroupsAtom } from '../timelineGroups';
 
 // 添加时间线组
 export const addTimelineGroupAtom = atom(null, (_get, set, { title }: { title: string }) => {
@@ -18,6 +20,8 @@ export const addTimelineGroupAtom = atom(null, (_get, set, { title }: { title: s
       prev.push(newGroup);
     }),
   );
+
+  set(selectedTimelineGroupIdAtom, newGroup.id);
 });
 
 // 删除时间线组
@@ -31,7 +35,7 @@ export const reorderTimelineGroupsAtom = atom(null, (_get, set, groupIds: string
     // 创建 ID 到 group 的映射
     const groupMap = new Map(prev.map((group) => [group.id, group]));
 
-    console.log('Reordering timeline groups to:', groupIds);
+    // console.log('Reordering timeline groups to:', groupIds);
 
     // 按新顺序重新排列
     return groupIds.map((id) => groupMap.get(id)!);

@@ -1,4 +1,4 @@
-import { addTimelineGroupAtom } from '@/store/actions/timelineActions';
+import { addTimelineGroupAtom } from '@/store/timelineGroups';
 import { timelineGroupsAtom } from '@/store/timelineGroups';
 import type { TimelineGroup } from '@/types/timeline';
 import { Button, Dialog, Field, Input, Portal, type UseDialogReturn } from '@chakra-ui/react';
@@ -13,17 +13,17 @@ interface EditTimelineGroupDialogProps {
 export const EditTimelineGroupDialog = ({ control, group }: EditTimelineGroupDialogProps) => {
   const [title, setTitle] = useState(group?.title ?? '');
 
-  const addTimelineGroup = useSetAtom(addTimelineGroupAtom);
-  const updateTimelineGroup = useSetAtom(timelineGroupsAtom);
+  const addTimelineGroups = useSetAtom(addTimelineGroupAtom);
+  const updateTimelineGroups = useSetAtom(timelineGroupsAtom);
 
   const isEditMode = Boolean(group);
 
   const handleSubmit = () => {
     if (title.trim()) {
       if (isEditMode) {
-        updateTimelineGroup((prev) => prev.map((item) => (item.id === group?.id ? { ...item, title } : item)));
+        updateTimelineGroups((prev) => prev.map((item) => (item.id === group?.id ? { ...item, title } : item)));
       } else {
-        addTimelineGroup({ title });
+        addTimelineGroups({ title });
       }
       setTitle('');
       control.setOpen(false);

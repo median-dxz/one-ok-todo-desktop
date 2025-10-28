@@ -3,8 +3,7 @@ import { useAtomValue, useSetAtom } from 'jotai';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createSwapy, utils } from 'swapy';
 
-import { reorderTimelineGroupsAtom } from '@/store/actions/timelineActions';
-import { selectedTimelineGroupIdAtom, timelineGroupsAtom } from '@/store/timelineGroups';
+import { reorderTimelineGroupsAtom, selectedTimelineGroupIdAtom, timelineGroupsAtom } from '@/store/timelineGroups';
 import type { TimelineGroup } from '@/types/timeline';
 
 import { TimelineGroupListItem } from './TimelineGroupListItem';
@@ -60,7 +59,7 @@ export function TimelineGroupList({ onEdit }: TimelineGroupListProps) {
   // 在添加或删除项目时更新 Swapy 实例
   useEffect(() => {
     utils.dynamicSwapy(swapyRef.current, timelineGroups, 'id', slotItemMap, setSlotItemMap);
-  }, [timelineGroups]);
+  }, [slotItemMap, timelineGroups]);
 
   return (
     <VStack alignItems="stretch" gap={1} ref={swapyContainerRef}>

@@ -105,14 +105,6 @@ interface TimelineDisplayProps {
 }
 
 export function TimelineDisplay({ timelineGroup }: TimelineDisplayProps) {
-  if (timelineGroup == null) {
-    return <EmptyTimelineGroupScreen />;
-  }
-
-  if (timelineGroup.timelines.length === 0) {
-    return <EmptyTimelineScreen groupId={timelineGroup.id} />;
-  }
-
   const setSelectedNodeId = useSetAtom(selectedNodeIdAtom);
   const completeRecurrenceInstance = useSetAtom(completeRecurrenceInstanceAtom);
   const [stageSize, setStageSize] = useState({ width: 0, height: 0 });
@@ -124,6 +116,14 @@ export function TimelineDisplay({ timelineGroup }: TimelineDisplayProps) {
 
   const nodePositions = new Map<string, { x: number; y: number }>();
   let currentY = 40;
+
+  if (timelineGroup == null) {
+    return <EmptyTimelineGroupScreen />;
+  }
+
+  if (timelineGroup.timelines.length === 0) {
+    return <EmptyTimelineScreen groupId={timelineGroup.id} />;
+  }
 
   timelineGroup.timelines.forEach((timeline: Timeline) => {
     if ('nodes' in timeline) {

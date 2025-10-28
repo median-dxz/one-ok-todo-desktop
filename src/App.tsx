@@ -28,8 +28,8 @@ import { TimelineDisplay } from '@/components/timeline/TimelineDisplay';
 import { TimelineGroupList } from '@/components/timeline/TimelineGroupList';
 import { TabButton } from '@/components/ui/TabButton';
 import { viewAtom } from '@/store/appAtom';
-import { selectedTimelineGroupAtom } from '@/store/derivedAtoms';
 import { loadDataAtom } from '@/store/persistence';
+import { selectedTimelineGroupIdAtom } from '@/store/timelineGroups';
 import type { TimelineGroup } from '@/types/timeline';
 
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
@@ -49,7 +49,7 @@ function App() {
   const editTimelineGroupDialog = useDialog();
   const [editingGroup, setEditingGroup] = useState<TimelineGroup | null>(null);
 
-  const currentTimelineGroup = useAtomValue(selectedTimelineGroupAtom);
+  const currentTimelineGroupId = useAtomValue(selectedTimelineGroupIdAtom);
 
   const handleSync = async () => {
     setSyncStatus('syncing');
@@ -95,7 +95,7 @@ function App() {
 
   switch (currentViewType) {
     case 'timeline':
-      view = <TimelineDisplay timelineGroup={currentTimelineGroup} />;
+      view = <TimelineDisplay timelineGroupId={currentTimelineGroupId} />;
       break;
     case 'memo':
       view = <MemoDisplay />;
