@@ -1,18 +1,16 @@
-import { Box, Button, Center, Flex, Heading, useDialog, VStack } from '@chakra-ui/react';
+import { Box, Flex } from '@chakra-ui/react';
 import { useAtom, useSetAtom } from 'jotai';
+import { nanoid } from 'nanoid';
 import { useEffect, useRef, useState } from 'react';
 import { Circle, Group, Layer, Path, Stage, Text } from 'react-konva';
-import { nanoid } from 'nanoid';
-
-import { FiCalendar } from 'react-icons/fi';
-import { LuPlus } from 'react-icons/lu';
 
 import { completeRecurrenceInstanceAtom } from '@/store/actions/timelineActions';
 import { selectedNodeIdAtom } from '@/store/timelineGroups';
 import type { TaskNode, Timeline, TimelineGroup } from '@/types/timeline';
 import { generateRecurrenceInstances } from '@/utils/recurrenceLogic';
 
-import { NewTimelineGroupDialog } from './NewTimelineGroupDialog';
+import { EmptyTimelineGroupScreen } from './EmptyTimelineGroupScreen';
+import { EmptyTimelineScreen } from './EmptyTimelineScreen';
 import { RightSidebar } from './RightSidebar';
 
 // Pattern colors for different statuses
@@ -106,30 +104,13 @@ interface TimelineDisplayProps {
   timelineGroup: TimelineGroup | null;
 }
 
-const EmptyScreen = () => {
-  const newTimelineGroupDialog = useDialog();
-
-  return (
-    <Center h="100%">
-      <VStack gap={4} textAlign="center">
-        <Box as="span" color="gray.500">
-          <FiCalendar size={48} />
-        </Box>
-        <Heading size="md">尚未选择时间线</Heading>
-        <Box color="gray.500">请在左侧选择一个时间线，或创建新的时间线开始添加任务。</Box>
-        <Button colorPalette="blue" variant="solid" size="sm" onClick={() => newTimelineGroupDialog.setOpen(true)}>
-          <LuPlus />
-          新建
-        </Button>
-        <NewTimelineGroupDialog control={newTimelineGroupDialog} />
-      </VStack>
-    </Center>
-  );
-};
-
 export function TimelineDisplay({ timelineGroup }: TimelineDisplayProps) {
   if (timelineGroup == null) {
-    return <EmptyScreen />;
+    return <EmptyTimelineGroupScreen />;
+  }
+
+  if (timelineGroup.timelines.length === 0) {
+    return <EmptyTimelineScreen groupId={timelineGroup.id} />;
   }
 
   const setSelectedNodeId = useSetAtom(selectedNodeIdAtom);

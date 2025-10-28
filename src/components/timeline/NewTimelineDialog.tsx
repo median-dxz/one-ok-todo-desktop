@@ -1,68 +1,54 @@
-import {
-  Button,
-  Dialog,
-  Field,
-  Input,
-  Portal,
-} from '@chakra-ui/react';
+import { addTimelineAtom } from '@/store/actions/timelineActions';
+import { Button, Dialog, Field, Input, Portal, type UseDialogReturn } from '@chakra-ui/react';
 import { useSetAtom } from 'jotai';
 import { useState } from 'react';
-import { addTimelineAtom } from '@/store/actions/timelineActions';
-import { LuPlus } from 'react-icons/lu';
 
 interface NewTimelineDialogProps {
+  control: UseDialogReturn;
   groupId: string;
 }
 
-export const NewTimelineDialog = ({ groupId }: NewTimelineDialogProps) => {
+export const NewTimelineDialog = ({ control, groupId }: NewTimelineDialogProps) => {
   const [title, setTitle] = useState('');
-  const [isOpen, setIsOpen] = useState(false);
+
   const addTimeline = useSetAtom(addTimelineAtom);
 
   const handleCreate = () => {
     if (title.trim()) {
       addTimeline({ groupId, title });
       setTitle('');
-      setIsOpen(false);
+      control.setOpen(false);
     }
   };
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={(e) => setIsOpen(e.open)}>
-      <Dialog.Trigger asChild>
-        <Button size="sm" variant="outline">
-          <LuPlus />
-          New Timeline
-        </Button>
-      </Dialog.Trigger>
+    <Dialog.RootProvider value={control}>
       <Portal>
         <Dialog.Backdrop />
         <Dialog.Positioner>
           <Dialog.Content>
             <Dialog.Header>
-              <Dialog.Title>Create New Timeline</Dialog.Title>
+              <Dialog.Title>创建时间线</Dialog.Title>
             </Dialog.Header>
             <Dialog.Body>
               <Field.Root>
-                <Field.Label>Timeline Title</Field.Label>
-                <Input
-                  placeholder="Enter timeline title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
+                <Field.Label>时间线名称</Field.Label>
+                <Input placeholder="输入时间线名称" value={title} onChange={(e) => setTitle(e.target.value)} />
               </Field.Root>
             </Dialog.Body>
             <Dialog.Footer>
-              <Dialog.CloseTrigger asChild>
-                <Button variant="outline">Cancel</Button>
-              </Dialog.CloseTrigger>
-              <Button onClick={handleCreate} disabled={!title.trim()}>
-                Create
-              </Button>
+              <Dialog.ActionTrigger asChild>
+                <Button variant="outline">取消</Button>
+              </Dialog.ActionTrigger>
+              <Dialog.ActionTrigger asChild>
+                <Button onClick={handleCreate} disabled={!title.trim()}>
+                  创建
+                </Button>
+              </Dialog.ActionTrigger>
             </Dialog.Footer>
           </Dialog.Content>
         </Dialog.Positioner>
       </Portal>
-    </Dialog.Root>
+    </Dialog.RootProvider>
   );
 };

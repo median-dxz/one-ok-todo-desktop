@@ -1,16 +1,30 @@
 import { addTimelineGroupAtom } from '@/store/actions/timelineActions';
+import { timelineGroupsAtom } from '@/store/timelineGroups';
+import type { TimelineGroup } from '@/types/timeline';
 import { Button, Dialog, Field, Input, Portal, type UseDialogReturn } from '@chakra-ui/react';
 import { useSetAtom } from 'jotai';
 import { useState } from 'react';
 
-export const NewTimelineGroupDialog = ({ control }: { control: UseDialogReturn }) => {
-  const [title, setTitle] = useState('');
+interface EditTimelineGroupDialogProps {
+  control: UseDialogReturn;
+  group?: TimelineGroup | null;
+}
+
+export const EditTimelineGroupDialog = ({ control, group }: EditTimelineGroupDialogProps) => {
+  const [title, setTitle] = useState(group?.title ?? '');
 
   const addTimelineGroup = useSetAtom(addTimelineGroupAtom);
+  const updateTimelineGroup = useSetAtom(timelineGroupsAtom);
 
-  const handleCreate = () => {
+  const isEditMode = Boolean(group);
+
+  const handleSubmit = () => {
     if (title.trim()) {
-      addTimelineGroup({ title });
+      if (isEditMode) {
+        updateTimelineGroup((prev) => prev.map((item) => (item.id === group?.id ? { ...item, title } : item)));
+      } else {
+        addTimelineGroup({ title });
+      }
       setTitle('');
       control.setOpen(false);
     }
@@ -23,7 +37,7 @@ export const NewTimelineGroupDialog = ({ control }: { control: UseDialogReturn }
         <Dialog.Positioner>
           <Dialog.Content>
             <Dialog.Header>
-              <Dialog.Title>创建组</Dialog.Title>
+              <Dialog.Title>{isEditMode ? '编辑组' : '创建组'}</Dialog.Title>
             </Dialog.Header>
             <Dialog.Body>
               <Field.Root>
@@ -36,8 +50,8 @@ export const NewTimelineGroupDialog = ({ control }: { control: UseDialogReturn }
                 <Button variant="outline">取消</Button>
               </Dialog.ActionTrigger>
               <Dialog.ActionTrigger asChild>
-                <Button onClick={handleCreate} disabled={!title.trim()}>
-                  创建
+                <Button onClick={handleSubmit} disabled={!title.trim()}>
+                  {isEditMode ? '保存' : '创建'}
                 </Button>
               </Dialog.ActionTrigger>
             </Dialog.Footer>

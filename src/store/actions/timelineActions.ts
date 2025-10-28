@@ -2,6 +2,7 @@ import { atom } from 'jotai';
 import { timelineGroupsAtom } from '../timelineGroups';
 import type { RecurrenceTimeline, TaskTimeline, TimelineGroup } from '@/types/timeline';
 import { nanoid } from 'nanoid';
+import { produce } from 'immer';
 
 // 添加时间线组
 export const addTimelineGroupAtom = atom(null, (_get, set, { title }: { title: string }) => {
@@ -11,7 +12,30 @@ export const addTimelineGroupAtom = atom(null, (_get, set, { title }: { title: s
     timelines: [],
   };
 
-  set(timelineGroupsAtom, (prev) => [...prev, newGroup]);
+  set(
+    timelineGroupsAtom,
+    produce((prev) => {
+      prev.push(newGroup);
+    }),
+  );
+});
+
+// 删除时间线组
+export const deleteTimelineGroupAtom = atom(null, (_get, set, { id }: TimelineGroup) => {
+  set(timelineGroupsAtom, (prev) => prev.filter((group) => group.id !== id));
+});
+
+// 重新排序时间线组
+export const reorderTimelineGroupsAtom = atom(null, (_get, set, groupIds: string[]) => {
+  set(timelineGroupsAtom, (prev) => {
+    // 创建 ID 到 group 的映射
+    const groupMap = new Map(prev.map((group) => [group.id, group]));
+
+    console.log('Reordering timeline groups to:', groupIds);
+
+    // 按新顺序重新排列
+    return groupIds.map((id) => groupMap.get(id)!);
+  });
 });
 
 // 添加时间线到指定组

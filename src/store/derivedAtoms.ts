@@ -27,5 +27,5 @@ export const selectedNodeAtom = atom<TaskNode | null>((get) => {
 export const selectedTimelineGroupAtom = atom((get) => {
   const groups = get(timelineGroupsAtom);
   const selectedId = get(selectedTimelineGroupIdAtom);
-  return groups.find((g) => g.id === selectedId) ?? (groups.length > 0 ? groups[0] : null);
+  return groups.find((g) => g.id === selectedId) ?? null;
 });

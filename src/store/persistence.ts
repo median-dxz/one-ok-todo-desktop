@@ -3,7 +3,7 @@ import { loadData, saveData } from '@/utils/storage';
 import { atom } from 'jotai';
 import { appDataAtom } from './appAtom';
 import { memoAtom } from './memoAtom';
-import { timelineGroupsAtom } from './timelineGroups';
+import { selectedTimelineGroupIdAtom, timelineGroupsAtom } from './timelineGroups';
 
 const debouncedSaveData = debounce(async (get) => {
   const appData = get(appDataAtom);
@@ -20,6 +20,11 @@ export const loadDataAtom = atom(null, async (_, set) => {
   set(appDataAtom, appData);
   set(memoAtom, memo);
   set(timelineGroupsAtom, timelineGroups);
+  if (timelineGroups.length > 0) {
+    set(selectedTimelineGroupIdAtom, timelineGroups[0].id);
+  } else {
+    set(selectedTimelineGroupIdAtom, null);
+  }
 });
 
 export const persistenceAtom = atom(

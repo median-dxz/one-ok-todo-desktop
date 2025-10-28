@@ -13,24 +13,24 @@ import {
   VStack,
   type PresenceProps,
 } from '@chakra-ui/react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
-import { useState, type ReactElement } from 'react';
+import { useAtomValue, useSetAtom } from 'jotai';
+import { useCallback, useState, type ReactElement } from 'react';
 
 import './App.css';
 
-import { FiEdit, FiEye, FiList, FiRefreshCw } from 'react-icons/fi';
+import { FiEdit, FiEye, FiRefreshCw } from 'react-icons/fi';
 import { LuPlus } from 'react-icons/lu';
 
 import { MemoDisplay } from '@/components/memo/MemoDisplay';
 import { PersistenceProvider } from '@/components/PersistenceProvider';
+import { EditTimelineGroupDialog } from '@/components/timeline/EditTimelineGroupDialog';
 import { TimelineDisplay } from '@/components/timeline/TimelineDisplay';
+import { TimelineGroupList } from '@/components/timeline/TimelineGroupList';
 import { TabButton } from '@/components/ui/TabButton';
 import { viewAtom } from '@/store/appAtom';
 import { selectedTimelineGroupAtom } from '@/store/derivedAtoms';
 import { loadDataAtom } from '@/store/persistence';
-import { selectedTimelineGroupIdAtom, timelineGroupsAtom } from '@/store/timelineGroups';
-
-import { NewTimelineGroupDialog } from '@/components/timeline/NewTimelineGroupDialog';
+import type { TimelineGroup } from '@/types/timeline';
 
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
 
@@ -42,13 +42,13 @@ const syncStatusColors = {
 };
 
 function App() {
-  const [currentViewType, setView] = useAtom(viewAtom);
+  const currentViewType = useAtomValue(viewAtom);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
   const reloadData = useSetAtom(loadDataAtom);
 
-  const newTimelineGroupDialog = useDialog();
-  const setSelectedTimelineGroupId = useSetAtom(selectedTimelineGroupIdAtom);
-  const timelineGroups = useAtomValue(timelineGroupsAtom);
+  const editTimelineGroupDialog = useDialog();
+  const [editingGroup, setEditingGroup] = useState<TimelineGroup | null>(null);
+
   const currentTimelineGroup = useAtomValue(selectedTimelineGroupAtom);
 
   const handleSync = async () => {
@@ -71,6 +71,14 @@ function App() {
       setSyncStatus('error');
     }
   };
+
+  const handleTimelineGroupEdit = useCallback(
+    (group: TimelineGroup | null) => {
+      setEditingGroup(group);
+      editTimelineGroupDialog.setOpen(true);
+    },
+    [editTimelineGroupDialog],
+  );
 
   let view: ReactElement = <></>;
   const presenceStyle: PresenceProps = {
@@ -135,32 +143,25 @@ function App() {
             <Separator />
 
             {/* 时间线组区域 */}
-
             <Box flex={1}>
               <Presence present={currentViewType === 'timeline'} {...presenceStyle}>
-                <VStack alignItems="stretch" gap={1}>
-                  {timelineGroups.map((group) => (
-                    <Button
-                      key={group.id}
-                      size="sm"
-                      justifyContent="flex-start"
-                      variant={currentTimelineGroup?.id === group.id ? 'subtle' : 'ghost'}
-                      onClick={() => {
-                        setSelectedTimelineGroupId(group.id);
-                        setView('timeline');
-                      }}
-                    >
-                      <FiList /> {group.title}
-                    </Button>
-                  ))}
-                </VStack>
+                <TimelineGroupList onEdit={handleTimelineGroupEdit} />
 
                 <Spacer />
-                <Button variant="outline" onClick={() => newTimelineGroupDialog.setOpen(true)}>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    handleTimelineGroupEdit(null);
+                  }}
+                >
                   <LuPlus />
                   新建
                 </Button>
-                <NewTimelineGroupDialog control={newTimelineGroupDialog} />
+                <EditTimelineGroupDialog
+                  key={editingGroup?.id}
+                  control={editTimelineGroupDialog}
+                  group={editingGroup}
+                />
               </Presence>
 
               <Presence present={currentViewType === 'memo'} {...presenceStyle}>

@@ -1,0 +1,5 @@
+onlyBuiltDependencies:
+  - esbuild
+
+patchedDependencies:
+  swapy@1.0.5: patches/swapy@1.0.5.patch
