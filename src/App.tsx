@@ -31,6 +31,7 @@ import { viewAtom } from '@/store/appAtom';
 import { loadDataAtom } from './store/actions/loadData';
 import { selectedTimelineGroupIdAtom } from '@/store/timelineGroup';
 import type { TimelineGroup } from '@/types/timeline';
+import { loadMockDataAtom } from '@/utils/mockData';
 
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
 
@@ -45,6 +46,7 @@ function App() {
   const [currentViewType, setViewType] = useAtom(viewAtom);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
   const loadData = useSetAtom(loadDataAtom);
+  const loadMockData = useSetAtom(loadMockDataAtom);
 
   const editTimelineGroupDialog = useDialog();
   const [editingGroup, setEditingGroup] = useState<TimelineGroup | null>(null);
@@ -54,6 +56,12 @@ function App() {
   const handleSync = async () => {
     setSyncStatus('syncing');
     try {
+      // 模拟同步延迟
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // 直接加载 mockData（假数据）
+      loadMockData();
+
       // IMPORTANT: Replace with your actual WebDAV credentials
       /*
       const webdavOptions = {
@@ -65,10 +73,17 @@ function App() {
       await uploadToWebDAV(webdavOptions);
       await downloadFromWebDAV(webdavOptions);
       */
-      await loadData(); // Reload data into Jotai state from local files
+
       setSyncStatus('success');
+
+      // 2秒后重置状态
+      setTimeout(() => setSyncStatus('idle'), 2000);
     } catch (error) {
       setSyncStatus('error');
+      console.error('Sync failed:', error);
+
+      // 2秒后重置状态
+      setTimeout(() => setSyncStatus('idle'), 2000);
     }
   };
 

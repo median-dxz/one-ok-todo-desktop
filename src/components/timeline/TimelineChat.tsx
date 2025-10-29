@@ -1,21 +1,32 @@
+import { addTimelineAtom } from '@/store/actions/timelineActions';
+import { useTimelineGroupAtom } from '@/store/timelineGroup';
 import { Button, HStack, Input } from '@chakra-ui/react';
-import React, { useState } from 'react';
+import { useSetAtom } from 'jotai';
+import { useState } from 'react';
 import { LuPlus } from 'react-icons/lu';
 
-const TimelineChat: React.FC = () => {
-  const [newTimelineTitle, setNewTimelineTitle] = useState('');
+interface TimelineChatProps {
+  timelineGroupId: string;
+}
+
+export function TimelineChat({ timelineGroupId }: TimelineChatProps) {
+  const [chatMsg, setChatMsg] = useState('');
+  const groupAtom = useTimelineGroupAtom(timelineGroupId);
+  const addTimeline = useSetAtom(addTimelineAtom);
 
   const onAddTimeline = () => {
-    setNewTimelineTitle('');
+    if (chatMsg.trim() === '') return;
+    addTimeline({ groupAtom, title: chatMsg });
+    setChatMsg('');
   };
 
   return (
     <HStack css={{ width: 'full', py: 2, px: 2, bg: 'white', rounded: 'lg', boxShadow: 'lg', gap: 4 }}>
       <Input
         placeholder="New timeline title"
-        value={newTimelineTitle}
+        value={chatMsg}
         variant="subtle"
-        onChange={(e) => setNewTimelineTitle(e.target.value)}
+        onChange={(e) => setChatMsg(e.target.value)}
         flex={1}
         size="md"
       />
@@ -25,6 +36,4 @@ const TimelineChat: React.FC = () => {
       </Button>
     </HStack>
   );
-};
-
-export default TimelineChat;
+}

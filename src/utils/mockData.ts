@@ -2,6 +2,11 @@ import type { AppData } from '@/types/app';
 import type { MemoNode } from '@/types/memo';
 import type { TimelineGroup } from '@/types/timeline';
 
+import { appDataAtom } from '@/store/appAtom';
+import { memoAtom } from '@/store/memoAtom';
+import { selectedTimelineGroupIdAtom, timelineGroupsAtom } from '@/store/timelineGroup';
+import { atom } from 'jotai';
+
 export const initialTimelineGroups: TimelineGroup[] = [
   {
     id: 'complex-project',
@@ -10,7 +15,7 @@ export const initialTimelineGroups: TimelineGroup[] = [
       {
         id: 'visa-timeline',
         title: '签证办理',
-        type: 'task-timeline',
+        type: 'task',
         nodes: [
           { id: 'visa-prep', type: 'task', title: '准备签证材料', status: 'done', prevs: [], succs: ['visa-submit'] },
           {
@@ -27,7 +32,7 @@ export const initialTimelineGroups: TimelineGroup[] = [
       {
         id: 'travel-prep',
         title: '旅行准备',
-        type: 'task-timeline',
+        type: 'task',
         nodes: [
           {
             id: 'booking-group',
@@ -36,10 +41,7 @@ export const initialTimelineGroups: TimelineGroup[] = [
             status: 'lock',
             prevs: [],
             succs: ['pack-stuff'],
-            subtasks: [
-              { id: 'book-flight', type: 'sub-task', title: '订机票', status: 'todo' },
-              { id: 'book-hotel', type: 'sub-task', title: '订酒店', status: 'todo' },
-            ],
+            subtasks: [{ title: '订机票' }, { title: '订酒店' }],
           },
           {
             id: 'pack-stuff',
@@ -60,7 +62,7 @@ export const initialTimelineGroups: TimelineGroup[] = [
       {
         id: 'learn-konva',
         title: '学习 Konva.js',
-        type: 'task-timeline',
+        type: 'task',
         nodes: [
           { id: 'konva-docs', type: 'task', title: '阅读官方文档', status: 'done', prevs: [], succs: ['konva-demo'] },
           {
@@ -70,7 +72,7 @@ export const initialTimelineGroups: TimelineGroup[] = [
             status: 'todo',
             prevs: ['konva-docs'],
             succs: ['konva-integrate'],
-            mode: {
+            executionConfig: {
               mode: 'quantitative',
               quantitativeConfig: {
                 target: 5,
@@ -91,24 +93,34 @@ export const initialTimelineGroups: TimelineGroup[] = [
       {
         id: 'weekly-routine',
         title: '每周例行',
-        type: 'recurrence-timeline',
+        type: 'recurrence',
+        startDate: '2025-10-01T00:00:00Z',
         completedTasks: [
           {
-            taskTitle: '阅读技术文章',
-            scheduledDate: '2025-10-20T00:00:00Z',
+            id: 'recurrence-1',
+            type: 'task',
+            title: '阅读技术文章',
             status: 'done',
+            prevs: [],
+            succs: [],
             completedDate: '2025-10-20T10:30:00Z',
           },
           {
-            taskTitle: '健身1小时',
-            scheduledDate: '2025-10-22T00:00:00Z',
+            id: 'recurrence-2',
+            type: 'task',
+            title: '健身1小时',
             status: 'done',
+            prevs: [],
+            succs: [],
             completedDate: '2025-10-22T18:00:00Z',
           },
           {
-            taskTitle: '总结周报',
-            scheduledDate: '2025-10-24T00:00:00Z',
+            id: 'recurrence-3',
+            type: 'task',
+            title: '总结周报',
             status: 'skipped',
+            prevs: [],
+            succs: [],
           },
         ],
         frequency: {
@@ -180,3 +192,22 @@ export const initialAppData: AppData = {
     syncStatus: 'synced',
   },
 };
+
+// 加载假数据的 atom
+export const loadMockDataAtom = atom(null, (_get, set) => {
+  console.log('[MockData] Loading mock data...');
+
+  // 直接设置假数据
+  set(timelineGroupsAtom, initialTimelineGroups);
+  set(memoAtom, initialMemo);
+  set(appDataAtom, initialAppData);
+
+  // 重新设置选中的时间线组
+  if (initialTimelineGroups.length > 0) {
+    set(selectedTimelineGroupIdAtom, initialTimelineGroups[0].id);
+  } else {
+    set(selectedTimelineGroupIdAtom, null);
+  }
+
+  console.log('[MockData] Mock data loaded successfully');
+});

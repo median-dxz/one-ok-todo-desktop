@@ -66,7 +66,7 @@ export const reorderTimelineGroupsAtom = atom(null, (get, set, groupIds: string[
 /* Atom Creators */
 
 export const createTimelineGroupAtom = (groupId: string | null) => {
-  return focusAtom(_timelineGroupsAtom, (optic) => optic.find((group) => group.id === groupId));
+  return focusAtom(timelineGroupsAtom, (optic) => optic.find((group) => group.id === groupId));
 };
 
 /* Hooks */

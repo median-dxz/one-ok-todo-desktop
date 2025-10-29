@@ -3,8 +3,10 @@ import type { MemoNode } from './memo';
 
 export const NodeStatusSchema = z.enum(['todo', 'done', 'skipped', 'lock']);
 
-export const TaskModeConfigSchema = z.object({
-  mode: z.enum(['scheduled', 'quantitative']),
+export const TaskExecutionModeSchema = z.enum(['scheduled', 'quantitative']);
+
+export const ExecutionModeConfigSchema = z.object({
+  mode: TaskExecutionModeSchema,
   scheduledConfig: z
     .object({
       deadline: z.string().optional(),
@@ -22,7 +24,9 @@ export const TaskModeConfigSchema = z.object({
 
 const BaseNodeSchema = z.object({
   id: z.string(),
-  type: z.enum(['task', 'timeline-delimiter']),
+  type: z.enum(['task', 'delimiter']),
+  prevs: z.array(z.string()),
+  succs: z.array(z.string()),
 });
 
 export const SubTaskSchema = z.object({
@@ -33,15 +37,14 @@ export const TaskNodeSchema = BaseNodeSchema.extend({
   type: z.literal('task'),
   title: z.string(),
   status: NodeStatusSchema,
-  prevs: z.array(z.string()),
-  succs: z.array(z.string()),
-  mode: TaskModeConfigSchema.optional(),
+  executionConfig: ExecutionModeConfigSchema.optional(),
   subtasks: z.array(SubTaskSchema).optional(),
   milestone: z.boolean().optional(),
+  completedDate: z.string().optional(),
 });
 
 export const TimelineDelimiterNodeSchema = BaseNodeSchema.extend({
-  type: z.literal('timeline-delimiter'),
+  type: z.literal('delimiter'),
   markerType: z.enum(['start', 'end']),
 });
 
@@ -66,27 +69,25 @@ export const RecurrencePatternSchema = z.object({
   currentIndex: z.number().optional(),
 });
 
-export const RecurrenceInstanceSchema = z.object({
-  taskTitle: z.string(),
-  scheduledDate: z.string(),
-  status: NodeStatusSchema,
-  completedDate: z.string().optional(),
+export const RecurrenceInstanceSchema = TaskNodeSchema.omit({
+  milestone: true,
+  subtasks: true,
 });
 
 const BaseTimelineSchema = z.object({
   id: z.string(),
   title: z.string().min(1),
-  // 'task-timeline' | 'recurrence-timeline'
-  type: z.enum(['task-timeline', 'recurrence-timeline']),
+  // 'task' | 'recurrence'
+  type: z.enum(['task', 'recurrence']),
 });
 
 export const TaskTimelineSchema = BaseTimelineSchema.extend({
-  type: z.literal('task-timeline'),
+  type: z.literal('task'),
   nodes: z.array(TimelineNodeSchema),
 });
 
 export const RecurrenceTimelineSchema = BaseTimelineSchema.extend({
-  type: z.literal('recurrence-timeline'),
+  type: z.literal('recurrence'),
   completedTasks: z.array(RecurrenceInstanceSchema),
   frequency: RecurrenceFrequencySchema,
   pattern: RecurrencePatternSchema.optional(),
