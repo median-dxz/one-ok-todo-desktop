@@ -1,6 +1,6 @@
 export type NodeStatus = 'todo' | 'done' | 'skipped' | 'lock';
 export type TaskMode = 'scheduled' | 'quantitative';
-export type NodeType = 'task' | 'sub-task';
+export type NodeType = 'task' | 'timeline-delimiter';
 export type TimelineType = 'task-timeline' | 'recurrence-timeline';
 
 export interface TaskModeConfig {
@@ -29,15 +29,15 @@ export interface Dependency {
 // 基础节点属性
 export interface BaseNode {
   id: string; // 节点唯一标识
-  title: string; // 节点标题
   type: NodeType; // 节点类型
-
-  status: NodeStatus; // 节点状态
 }
 
 // 普通任务节点
 export interface TaskNode extends BaseNode {
   type: 'task';
+
+  title: string; // 节点标题
+  status: NodeStatus; // 节点状态
 
   // 依赖关系
   prevs: string[]; // 前驱节点 ID 列表
@@ -48,9 +48,14 @@ export interface TaskNode extends BaseNode {
   milestone?: boolean; // 里程碑，用户手动高亮的节点
 }
 
-// 子任务（仅存在于 GroupNode 中）
-export interface SubTask extends BaseNode {
-  type: 'sub-task';
+// 子任务
+export interface SubTask {
+  title: string;
+}
+
+export interface TimelineDelimiterNode extends BaseNode {
+  type: 'timeline-delimiter';
+  markerType: 'start' | 'end';
 }
 
 export type RecurrenceFrequency = 'daily' | WeeklyConfig | MonthlyConfig;
@@ -93,10 +98,12 @@ export interface BaseTimeline {
   type: TimelineType; // 时间线类型
 }
 
+export type TimelineNode = TaskNode | TimelineDelimiterNode;
+
 export interface TaskTimeline extends BaseTimeline {
   type: 'task-timeline';
 
-  nodes: TaskNode[]; // 节点列表（按执行顺序排列）
+  nodes: TimelineNode[];
 }
 
 export interface RecurrenceTimeline extends BaseTimeline {
@@ -108,6 +115,9 @@ export interface RecurrenceTimeline extends BaseTimeline {
 
   // 任务轮换模式
   pattern?: RecurrencePattern;
+
+  startDate: string;
+  endDate?: string;
 }
 
 export type Timeline = TaskTimeline | RecurrenceTimeline;

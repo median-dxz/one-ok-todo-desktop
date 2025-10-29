@@ -22,14 +22,13 @@ import { FiEdit, FiEye, FiRefreshCw } from 'react-icons/fi';
 import { LuPlus } from 'react-icons/lu';
 
 import { MemoDisplay } from '@/components/memo/MemoDisplay';
-import { PersistenceProvider } from '@/components/PersistenceProvider';
 import { EditTimelineGroupDialog } from '@/components/timeline/EditTimelineGroupDialog';
 import { TimelineDisplay } from '@/components/timeline/TimelineDisplay';
 import { TimelineGroupList } from '@/components/timeline/TimelineGroupList';
 import { Loading } from '@/components/ui/Loading';
 import { TabButton } from '@/components/ui/TabButton';
 import { viewAtom } from '@/store/appAtom';
-import { loadDataAtom } from '@/store/persistence';
+import { loadDataAtom } from './store/actions/loadData';
 import { selectedTimelineGroupIdAtom } from '@/store/timelineGroup';
 import type { TimelineGroup } from '@/types/timeline';
 
@@ -114,7 +113,6 @@ function App() {
 
   return (
     <>
-      <PersistenceProvider />
       <Grid templateAreas={`"nav main"`} gridTemplateColumns="18em 1fr" h="100vh" w="100vw" bg="gray.100">
         <GridItem area="nav" p={2}>
           <Flex
@@ -188,7 +186,7 @@ function App() {
             </Flex>
           </Flex>
         </GridItem>
-        <GridItem area="main" p={2}>
+        <GridItem area="main">
           <Presence
             present
             h="full"

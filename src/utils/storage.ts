@@ -1,44 +1,51 @@
-import { initialAppData, initialMemo, initialTimelineGroups } from '@/store/mockData';
+import { invoke } from '@tauri-apps/api/core';
+
 import type { AppData } from '@/types/app';
 import type { MemoNode } from '@/types/memo';
 import type { TimelineGroup } from '@/types/timeline';
-import { invoke } from '@tauri-apps/api/core';
+
+import { initialAppData, initialMemo, initialTimelineGroups } from './mockData';
 
 // A flag to determine if the app is running in a Tauri context.
 const isTauri = !!window.__TAURI__;
-
-const DATA_FILE = 'app-data.json';
 
 interface ExtendedAppData extends AppData {
   memo: MemoNode[];
   timelineGroups: TimelineGroup[];
 }
 
-// --- Mock Filesystem for Browser Development ---
-const mockFileStorage = new Map<string, string>();
-mockFileStorage.set(
-  DATA_FILE,
-  JSON.stringify({ ...initialAppData, memo: initialMemo, timelineGroups: initialTimelineGroups }),
-);
+// --- Mock Storage for Browser Development (localStorage) ---
+const STORAGE_KEY = 'one-ok-todo-app-data';
+
+// Initialize localStorage with mock data if not present
+const initializeLocalStorage = () => {
+  if (!localStorage.getItem(STORAGE_KEY)) {
+    const initialData = { ...initialAppData, memo: initialMemo, timelineGroups: initialTimelineGroups };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(initialData));
+  }
+};
+
+// Initialize on module load
+initializeLocalStorage();
 
 const mockSaveData = async (data: ExtendedAppData): Promise<void> => {
-  console.log('[Mock FS] Saving root data');
+  console.log('[LocalStorage] Saving root data');
   const jsonString = JSON.stringify(data);
-  mockFileStorage.set(DATA_FILE, jsonString);
+  localStorage.setItem(STORAGE_KEY, jsonString);
 };
 
 const mockLoadData = async (): Promise<ExtendedAppData> => {
-  console.log('[Mock FS] Loading root data');
-  const jsonString = mockFileStorage.get(DATA_FILE);
+  console.log('[LocalStorage] Loading root data');
+  const jsonString = localStorage.getItem(STORAGE_KEY);
 
-  if (jsonString === undefined) {
+  if (jsonString === null) {
     return { ...initialAppData, memo: [], timelineGroups: [] };
   }
 
   try {
     return JSON.parse(jsonString) as ExtendedAppData;
   } catch (error) {
-    console.error('Failed to parse mock root data, falling back to initial mock data:', error);
+    console.error('Failed to parse localStorage data, falling back to initial mock data:', error);
     return { ...initialAppData, memo: [], timelineGroups: [] };
   }
 };

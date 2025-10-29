@@ -22,24 +22,30 @@ export const TaskModeConfigSchema = z.object({
 
 const BaseNodeSchema = z.object({
   id: z.string(),
-  title: z.string().min(1),
-  // 'task' | 'sub-task'
-  type: z.enum(['task', 'sub-task']),
-  status: NodeStatusSchema,
+  type: z.enum(['task', 'timeline-delimiter']),
 });
 
-export const SubTaskSchema = BaseNodeSchema.extend({
-  type: z.literal('sub-task'),
+export const SubTaskSchema = z.object({
+  title: z.string().min(1),
 });
 
 export const TaskNodeSchema = BaseNodeSchema.extend({
   type: z.literal('task'),
+  title: z.string(),
+  status: NodeStatusSchema,
   prevs: z.array(z.string()),
   succs: z.array(z.string()),
   mode: TaskModeConfigSchema.optional(),
   subtasks: z.array(SubTaskSchema).optional(),
   milestone: z.boolean().optional(),
 });
+
+export const TimelineDelimiterNodeSchema = BaseNodeSchema.extend({
+  type: z.literal('timeline-delimiter'),
+  markerType: z.enum(['start', 'end']),
+});
+
+export const TimelineNodeSchema = z.union([TaskNodeSchema, TimelineDelimiterNodeSchema]);
 
 export const WeeklyConfigSchema = z.object({
   weekdays: z.array(z.number().min(0).max(6)),
@@ -76,7 +82,7 @@ const BaseTimelineSchema = z.object({
 
 export const TaskTimelineSchema = BaseTimelineSchema.extend({
   type: z.literal('task-timeline'),
-  nodes: z.array(TaskNodeSchema),
+  nodes: z.array(TimelineNodeSchema),
 });
 
 export const RecurrenceTimelineSchema = BaseTimelineSchema.extend({
@@ -84,6 +90,8 @@ export const RecurrenceTimelineSchema = BaseTimelineSchema.extend({
   completedTasks: z.array(RecurrenceInstanceSchema),
   frequency: RecurrenceFrequencySchema,
   pattern: RecurrencePatternSchema.optional(),
+  startDate: z.string(),
+  endDate: z.string().optional(),
 });
 
 export const TimelineSchema = z.union([TaskTimelineSchema, RecurrenceTimelineSchema]);
