@@ -1,12 +1,13 @@
-import { produce } from 'immer';
 import type { TimelineGroup } from '@/types/timeline';
+import { produce } from 'immer';
 import { atom } from 'jotai';
+import { focusAtom } from 'jotai-optics';
 import { nanoid } from 'nanoid';
-import { initialTimelineGroups } from './mockData';
+import { useMemo } from 'react';
 
 /* Atoms */
 
-export const timelineGroupsAtom = atom<TimelineGroup[]>(initialTimelineGroups);
+export const timelineGroupsAtom = atom<TimelineGroup[]>([]);
 
 export const selectedTimelineGroupIdAtom = atom<string | null>(null);
 
@@ -45,3 +46,15 @@ export const reorderTimelineGroupsAtom = atom(null, (_get, set, groupIds: string
     return groupIds.map((id) => groupMap.get(id)!);
   });
 });
+
+/* Atom Creators */
+
+export const createTimelineGroupAtom = (groupId: string | null) => {
+  return focusAtom(timelineGroupsAtom, (optic) => optic.find((group) => group.id === groupId));
+};
+
+/* Hooks */
+
+export const useTimelineGroupAtom = (groupId: string | null) => {
+  return useMemo(() => createTimelineGroupAtom(groupId), [groupId]);
+};

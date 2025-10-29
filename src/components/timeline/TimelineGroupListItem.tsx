@@ -3,7 +3,7 @@ import { useSetAtom } from 'jotai';
 import { FiEdit, FiList, FiMoreVertical, FiTrash2 } from 'react-icons/fi';
 
 import { viewAtom } from '@/store/appAtom';
-import { deleteTimelineGroupAtom, selectedTimelineGroupIdAtom } from '@/store/timelineGroups';
+import { deleteTimelineGroupAtom, selectedTimelineGroupIdAtom } from '@/store/timelineGroup';
 import type { TimelineGroup } from '@/types/timeline';
 
 interface TimelineListItemProps {

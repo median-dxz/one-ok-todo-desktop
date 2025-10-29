@@ -1,13 +1,12 @@
-import { atom } from 'jotai';
 import type { MemoNode } from '@/types/memo';
-import { initialMemo } from './mockData';
+import { atom } from 'jotai';
 
 interface SelectNodeTypeDialog {
   isOpen: boolean;
   parentId: string | null;
 }
 
-export const memoAtom = atom<MemoNode[]>(initialMemo);
+export const memoAtom = atom<MemoNode[]>([]);
 
 export const selectedMemoNodeIdAtom = atom<string | null>(null);
 

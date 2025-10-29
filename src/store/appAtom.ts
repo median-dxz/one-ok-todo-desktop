@@ -1,9 +1,12 @@
-import { atom } from 'jotai';
 import type { AppData } from '@/types/app';
-import { initialAppData } from './mockData';
+import { atom } from 'jotai';
 
-export type ViewType = 'timeline' | 'memo';
+export type ViewType = 'initializing' | 'timeline' | 'memo';
 
-export const viewAtom = atom<ViewType>('timeline');
+export const viewAtom = atom<ViewType>('initializing');
+
+const initialAppData: AppData = {
+  version: '3',
+};
 
 export const appDataAtom = atom<AppData>(initialAppData);

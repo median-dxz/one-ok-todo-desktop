@@ -13,8 +13,8 @@ import {
   VStack,
   type PresenceProps,
 } from '@chakra-ui/react';
-import { useAtomValue, useSetAtom } from 'jotai';
-import { useCallback, useState, type ReactElement } from 'react';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useCallback, useEffect, useState, type ReactElement } from 'react';
 
 import './App.css';
 
@@ -26,10 +26,11 @@ import { PersistenceProvider } from '@/components/PersistenceProvider';
 import { EditTimelineGroupDialog } from '@/components/timeline/EditTimelineGroupDialog';
 import { TimelineDisplay } from '@/components/timeline/TimelineDisplay';
 import { TimelineGroupList } from '@/components/timeline/TimelineGroupList';
+import { Loading } from '@/components/ui/Loading';
 import { TabButton } from '@/components/ui/TabButton';
 import { viewAtom } from '@/store/appAtom';
 import { loadDataAtom } from '@/store/persistence';
-import { selectedTimelineGroupIdAtom } from '@/store/timelineGroups';
+import { selectedTimelineGroupIdAtom } from '@/store/timelineGroup';
 import type { TimelineGroup } from '@/types/timeline';
 
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
@@ -42,9 +43,9 @@ const syncStatusColors = {
 };
 
 function App() {
-  const currentViewType = useAtomValue(viewAtom);
+  const [currentViewType, setViewType] = useAtom(viewAtom);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
-  const reloadData = useSetAtom(loadDataAtom);
+  const loadData = useSetAtom(loadDataAtom);
 
   const editTimelineGroupDialog = useDialog();
   const [editingGroup, setEditingGroup] = useState<TimelineGroup | null>(null);
@@ -65,12 +66,16 @@ function App() {
       await uploadToWebDAV(webdavOptions);
       await downloadFromWebDAV(webdavOptions);
       */
-      await reloadData(); // Reload data into Jotai state from local files
+      await loadData(); // Reload data into Jotai state from local files
       setSyncStatus('success');
     } catch (error) {
       setSyncStatus('error');
     }
   };
+
+  useEffect(() => {
+    void loadData().then(() => setViewType('timeline'));
+  }, [loadData, setViewType]);
 
   const handleTimelineGroupEdit = useCallback(
     (group: TimelineGroup | null) => {
@@ -99,6 +104,9 @@ function App() {
       break;
     case 'memo':
       view = <MemoDisplay />;
+      break;
+    case 'initializing':
+      view = <Loading text="Loading..." size="lg" withOverlay />;
       break;
     default:
       break;

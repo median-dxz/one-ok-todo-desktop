@@ -1,5 +1,5 @@
-import { addTimelineGroupAtom } from '@/store/timelineGroups';
-import { timelineGroupsAtom } from '@/store/timelineGroups';
+import { addTimelineGroupAtom } from '@/store/timelineGroup';
+import { timelineGroupsAtom } from '@/store/timelineGroup';
 import type { TimelineGroup } from '@/types/timeline';
 import { Button, Dialog, Field, Input, Portal, type UseDialogReturn } from '@chakra-ui/react';
 import { useSetAtom } from 'jotai';
