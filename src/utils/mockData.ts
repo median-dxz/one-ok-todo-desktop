@@ -4,7 +4,7 @@ import type { TimelineGroup } from '@/types/timeline';
 
 import { appDataAtom } from '@/store/appAtom';
 import { memoAtom } from '@/store/memoAtom';
-import { selectedTimelineGroupIdAtom, timelineGroupsAtom } from '@/store/timelineGroup';
+import { selectedTLGroupRefAtom, timelineGroupsAtom } from '@/store/timelineGroup';
 import { atom } from 'jotai';
 
 export const initialTimelineGroups: TimelineGroup[] = [
@@ -197,17 +197,12 @@ export const initialAppData: AppData = {
 export const loadMockDataAtom = atom(null, (_get, set) => {
   console.log('[MockData] Loading mock data...');
 
+  set(selectedTLGroupRefAtom, null);
+
   // 直接设置假数据
   set(timelineGroupsAtom, initialTimelineGroups);
   set(memoAtom, initialMemo);
   set(appDataAtom, initialAppData);
-
-  // 重新设置选中的时间线组
-  if (initialTimelineGroups.length > 0) {
-    set(selectedTimelineGroupIdAtom, initialTimelineGroups[0].id);
-  } else {
-    set(selectedTimelineGroupIdAtom, null);
-  }
 
   console.log('[MockData] Mock data loaded successfully');
 });

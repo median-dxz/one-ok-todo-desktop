@@ -1,39 +1,37 @@
 import { Flex, IconButton, Menu, Portal, Text, type SystemStyleObject } from '@chakra-ui/react';
-import { useSetAtom } from 'jotai';
+import { useAtom, useAtomValue, useSetAtom, type PrimitiveAtom } from 'jotai';
 import { FiEdit, FiList, FiMoreVertical, FiTrash2 } from 'react-icons/fi';
 
 import { viewAtom } from '@/store/appAtom';
-import { deleteTimelineGroupAtom, selectedTimelineGroupIdAtom } from '@/store/timelineGroup';
+import { deleteTimelineGroupAtom, editingTLGroupAtom, selectedTLGroupRefAtom } from '@/store/timelineGroup';
 import type { TimelineGroup } from '@/types/timeline';
+import type { MouseEventHandler } from 'react';
 
 interface TimelineListItemProps {
   slotId: string; // Swapy slot ID
   itemId: string; // Swapy item ID
-  group: TimelineGroup;
-  selected: boolean;
-  onEdit: (group: TimelineGroup) => void;
+  groupAtom: PrimitiveAtom<TimelineGroup>;
+  onEdit: () => void;
 }
 
-export function TimelineGroupListItem({ group, onEdit, slotId, itemId, selected }: TimelineListItemProps) {
-  const setCurrentId = useSetAtom(selectedTimelineGroupIdAtom);
+export function TimelineGroupListItem({ groupAtom, onEdit, slotId, itemId }: TimelineListItemProps) {
+  const [currentTimelineGroup, setCurrentTimelineGroup] = useAtom(selectedTLGroupRefAtom);
+  const group = useAtomValue(groupAtom);
   const deleteGroup = useSetAtom(deleteTimelineGroupAtom);
   const setView = useSetAtom(viewAtom);
+  const setEditingTLGroup = useSetAtom(editingTLGroupAtom);
 
-  const handleSelect = () => {
-    setCurrentId(group.id);
+  const selected = currentTimelineGroup?.toString() === groupAtom.toString();
+
+  const handleSelect: MouseEventHandler = (e) => {
+    e.stopPropagation();
+    setCurrentTimelineGroup(groupAtom);
     setView('timeline');
   };
 
-  const handleDelete = () => {
-    deleteGroup(group);
-    // 如果删除的是当前选中的组，清除选中状态
-    if (selected) {
-      setCurrentId(null);
-    }
-  };
-
-  const handleEdit = () => {
-    onEdit(group);
+  const handleDelete: MouseEventHandler = (e) => {
+    e.stopPropagation();
+    deleteGroup(groupAtom);
   };
 
   const itemStyles: SystemStyleObject = {
@@ -83,7 +81,13 @@ export function TimelineGroupListItem({ group, onEdit, slotId, itemId, selected 
           <Portal>
             <Menu.Positioner>
               <Menu.Content>
-                <Menu.Item value="edit" onClick={handleEdit}>
+                <Menu.Item
+                  value="edit"
+                  onClick={() => {
+                    setEditingTLGroup(groupAtom);
+                    onEdit();
+                  }}
+                >
                   <FiEdit />
                   编辑
                 </Menu.Item>

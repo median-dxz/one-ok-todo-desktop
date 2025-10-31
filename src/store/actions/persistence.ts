@@ -17,7 +17,7 @@ import { _timelineGroupsAtom } from '../timelineGroup';
 const debouncedSaveData = debounce(async (appData: AppData, memo: MemoNode[], timelineGroups: TimelineGroup[]) => {
   console.log('[Persistence] Saving data...');
   await saveData({ ...appData, memo, timelineGroups });
-}, 1000);
+}, 800);
 
 /** 持久化当前所有状态 */
 export const persistState = (get: Getter, set: Setter) => {

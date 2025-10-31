@@ -43,12 +43,12 @@ export const TaskNodeSchema = BaseNodeSchema.extend({
   completedDate: z.string().optional(),
 });
 
-export const TimelineDelimiterNodeSchema = BaseNodeSchema.extend({
+export const DelimiterNodeSchema = BaseNodeSchema.extend({
   type: z.literal('delimiter'),
   markerType: z.enum(['start', 'end']),
 });
 
-export const TimelineNodeSchema = z.union([TaskNodeSchema, TimelineDelimiterNodeSchema]);
+export const TimelineNodeSchema = z.union([TaskNodeSchema, DelimiterNodeSchema]);
 
 export const WeeklyConfigSchema = z.object({
   weekdays: z.array(z.number().min(0).max(6)),

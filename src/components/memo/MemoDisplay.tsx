@@ -1,6 +1,8 @@
 import { Box, Input, InputGroup, InputElement, VStack, Button, Icon } from '@chakra-ui/react';
 import { useAtomValue, useSetAtom } from 'jotai';
-import { memoAtom, selectNodeTypeDialogAtom } from '../../store/memoAtom';
+import { memoAtom } from '../../store/memoAtom';
+import { selectNodeTypeDialogAtom } from '../../store/memoAtom';
+import type { MemoNode as MemoNodeType } from '../../types/memo'; // Import MemoNode type
 import { MemoNode } from './MemoNode';
 import { FiSearch, FiPlus } from 'react-icons/fi';
 import { SelectNodeTypeDialog } from './SelectNodeTypeDialog';
@@ -26,7 +28,7 @@ export const MemoDisplay = () => {
         Add Root Item
       </Button>
       <VStack align="stretch" gap={0}>
-        {memoData.map((node, index) => (
+        {memoData.map((node: MemoNodeType, index: number) => (
           <MemoNode key={node.id} node={node} level={0} isLast={index === memoData.length - 1} />
         ))}
       </VStack>

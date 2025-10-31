@@ -1,11 +1,21 @@
-import { selectedNodeAtom } from '@/store/derivedAtoms';
-import { Badge, Flex, Heading, Text, VStack } from '@chakra-ui/react';
+import { selectedTLGroupValueAtom } from '@/store/timelineGroup';
+import type { TaskNode, Timeline, TimelineNode } from '@/types/timeline';
+import { Badge, CloseButton, Flex, Heading, HStack, Text, VStack } from '@chakra-ui/react';
 import { useAtomValue } from 'jotai';
 
-export const RightSidebar = () => {
-  const selectedNode = useAtomValue(selectedNodeAtom);
+interface RightSidebarProps {
+  selectedNodeId: string | null;
+  onClose?: () => void;
+}
 
-  if (!selectedNode) {
+export const RightSidebar = ({ selectedNodeId, onClose }: RightSidebarProps) => {
+  const timelineGroup = useAtomValue(selectedTLGroupValueAtom);
+
+  const selectedNode = timelineGroup?.timelines
+    .flatMap((t: Timeline) => ('nodes' in t ? t.nodes : []))
+    .find((n: TimelineNode) => n.id === selectedNodeId) as TaskNode | undefined;
+
+  if (!selectedNode || selectedNode.type !== 'task') {
     return null;
   }
 
@@ -20,10 +30,14 @@ export const RightSidebar = () => {
         p: 4,
         gap: 4,
         opacity: selectedNode ? 1 : 0,
+        position: 'relative',
       }}
       direction="column"
     >
-      <Heading size="md">{selectedNode.title}</Heading>
+      <HStack justify="space-between" align="flex-start">
+        <Heading size="md">{selectedNode.title}</Heading>
+        <CloseButton size="sm" onClick={onClose} />
+      </HStack>
       <VStack align="flex-start" gap={1}>
         <Text fontSize="sm" color="gray.500">
           Status

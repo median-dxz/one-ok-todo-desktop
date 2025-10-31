@@ -1,6 +1,5 @@
 import { deleteMemoNodeAtom, updateMemoNodeAtom } from '@/store/actions/memoActions';
-import { selectNodeTypeDialogAtom } from '@/store/memoAtom';
-import { selectedNodeIdAtom } from '@/store/timelineGroups';
+import { selectNodeTypeDialogAtom, selectedMemoNodeIdAtom } from '@/store/memoAtom';
 import type { MemoNode as MemoNodeType } from '@/types/memo';
 import { Box, Editable, Flex, HStack, Icon, IconButton, Spacer, VStack } from '@chakra-ui/react';
 import { useAtom, useSetAtom } from 'jotai';
@@ -22,11 +21,11 @@ const NODE_TYPE_ICONS = {
 };
 
 export const MemoNode = ({ node, level, isLast }: MemoNodeProps) => {
-  const [selectedNodeId, setSelectedNodeId] = useAtom(selectedNodeIdAtom);
   const [isHovered, setIsHovered] = useState(false);
   const setDialogState = useSetAtom(selectNodeTypeDialogAtom);
   const deleteNode = useSetAtom(deleteMemoNodeAtom);
   const updateNode = useSetAtom(updateMemoNodeAtom);
+  const [selectedNodeId, setSelectedNodeId] = useAtom(selectedMemoNodeIdAtom);
 
   const isSelected = selectedNodeId === node.id;
   const { icon, color } = NODE_TYPE_ICONS[node.type];

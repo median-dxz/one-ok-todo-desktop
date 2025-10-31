@@ -19,17 +19,17 @@ export interface ExecutionModeConfig {
 }
 
 // 基础节点属性
-export interface BaseNode {
+export type BaseNode = {
   id: string; // 节点唯一标识
   type: NodeType; // 节点类型
 
   // 依赖关系
   prevs: string[]; // 前驱节点 ID 列表
   succs: string[]; // 后继节点 ID 列表
-}
+};
 
 // 普通任务节点
-export interface TaskNode extends BaseNode {
+export type TaskNode = BaseNode & {
   type: 'task';
 
   title: string; // 节点标题
@@ -39,17 +39,17 @@ export interface TaskNode extends BaseNode {
   subtasks?: SubTask[]; // 子任务列表
   milestone?: boolean; // 里程碑，用户手动高亮的节点
   completedDate?: string; // 完成日期
-}
+};
 
 // 子任务
 export interface SubTask {
   title: string;
 }
 
-export interface TimelineDelimiterNode extends BaseNode {
+export type DelimiterNode = BaseNode & {
   type: 'delimiter';
   markerType: 'start' | 'end';
-}
+};
 
 export type RecurrenceFrequency = 'daily' | WeeklyConfig | MonthlyConfig;
 
@@ -86,7 +86,7 @@ export interface BaseTimeline {
   type: TimelineType; // 时间线类型
 }
 
-export type TimelineNode = TaskNode | TimelineDelimiterNode;
+export type TimelineNode = TaskNode | DelimiterNode;
 
 export interface TaskTimeline extends BaseTimeline {
   type: 'task';

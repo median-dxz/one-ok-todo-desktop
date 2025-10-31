@@ -25,11 +25,7 @@ const findNodeRecursive = (
 
 export const addMemoNodeAtom = atom(
   null,
-  (
-    get,
-    set,
-    { parentId, type }: { parentId: string | null; type: MemoNodeType },
-  ) => {
+  (get, set, { parentId, type }: { parentId: string | null; type: MemoNodeType }) => {
     const memoData = get(memoAtom);
     const newMemoData = YAML.parse(YAML.stringify(memoData));
 
@@ -73,11 +69,7 @@ export const addMemoNodeAtom = atom(
 
 export const updateMemoNodeAtom = atom(
   null,
-  (
-    get,
-    set,
-    { nodeId, newKey, newValue }: { nodeId: string; newKey?: string; newValue?: any },
-  ) => {
+  (get, set, { nodeId, newKey, newValue }: { nodeId: string; newKey?: string; newValue?: any }) => {
     const memoData = get(memoAtom);
     const newMemoData = YAML.parse(YAML.stringify(memoData));
     const { node } = findNodeRecursive(newMemoData, nodeId);
@@ -94,34 +86,28 @@ export const updateMemoNodeAtom = atom(
   },
 );
 
-export const deleteMemoNodeAtom = atom(
-  null,
-  (get, set, { nodeId }: { nodeId: string }) => {
-    const memoData = get(memoAtom);
-    let newMemoData = YAML.parse(YAML.stringify(memoData));
-    const { parent, index } = findNodeRecursive(newMemoData, nodeId);
+export const deleteMemoNodeAtom = atom(null, (get, set, { nodeId }: { nodeId: string }) => {
+  const memoData = get(memoAtom);
+  const newMemoData = YAML.parse(YAML.stringify(memoData));
+  const { parent, index } = findNodeRecursive(newMemoData, nodeId);
 
-    if (parent) {
-      parent.children.splice(index, 1);
-    } else if (index !== -1) {
-      newMemoData.splice(index, 1);
-    }
+  if (parent) {
+    parent.children.splice(index, 1);
+  } else if (index !== -1) {
+    newMemoData.splice(index, 1);
+  }
 
-    set(memoAtom, newMemoData);
-  },
-);
+  set(memoAtom, newMemoData);
+});
 
-export const toggleMemoNodeCollapseAtom = atom(
-  null,
-  (get, set, { nodeId }: { nodeId: string }) => {
-    const memoData = get(memoAtom);
-    const newMemoData = YAML.parse(YAML.stringify(memoData));
-    const { node } = findNodeRecursive(newMemoData, nodeId);
+export const toggleMemoNodeCollapseAtom = atom(null, (get, set, { nodeId }: { nodeId: string }) => {
+  const memoData = get(memoAtom);
+  const newMemoData = YAML.parse(YAML.stringify(memoData));
+  const { node } = findNodeRecursive(newMemoData, nodeId);
 
-    if (node) {
-      node.isCollapsed = !node.isCollapsed;
-    }
+  if (node) {
+    node.isCollapsed = !node.isCollapsed;
+  }
 
-    set(memoAtom, newMemoData);
-  },
-);
+  set(memoAtom, newMemoData);
+});

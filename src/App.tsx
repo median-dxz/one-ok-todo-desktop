@@ -13,7 +13,7 @@ import {
   VStack,
   type PresenceProps,
 } from '@chakra-ui/react';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useAtom, useSetAtom } from 'jotai';
 import { useCallback, useEffect, useState, type ReactElement } from 'react';
 
 import './App.css';
@@ -28,10 +28,9 @@ import { TimelineGroupList } from '@/components/timeline/TimelineGroupList';
 import { Loading } from '@/components/ui/Loading';
 import { TabButton } from '@/components/ui/TabButton';
 import { viewAtom } from '@/store/appAtom';
-import { loadDataAtom } from './store/actions/loadData';
-import { selectedTimelineGroupIdAtom } from '@/store/timelineGroup';
-import type { TimelineGroup } from '@/types/timeline';
+import { editingTLGroupAtom } from '@/store/timelineGroup';
 import { loadMockDataAtom } from '@/utils/mockData';
+import { loadDataAtom } from './store/actions/loadData';
 
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
 
@@ -49,9 +48,7 @@ function App() {
   const loadMockData = useSetAtom(loadMockDataAtom);
 
   const editTimelineGroupDialog = useDialog();
-  const [editingGroup, setEditingGroup] = useState<TimelineGroup | null>(null);
-
-  const currentTimelineGroupId = useAtomValue(selectedTimelineGroupIdAtom);
+  const [editingGroup, setEditingGroup] = useAtom(editingTLGroupAtom);
 
   const handleSync = async () => {
     setSyncStatus('syncing');
@@ -91,13 +88,9 @@ function App() {
     void loadData().then(() => setViewType('timeline'));
   }, [loadData, setViewType]);
 
-  const handleTimelineGroupEdit = useCallback(
-    (group: TimelineGroup | null) => {
-      setEditingGroup(group);
-      editTimelineGroupDialog.setOpen(true);
-    },
-    [editTimelineGroupDialog],
-  );
+  const handleTimelineGroupEdit = useCallback(() => {
+    editTimelineGroupDialog.setOpen(true);
+  }, [editTimelineGroupDialog]);
 
   let view: ReactElement = <></>;
   const presenceStyle: PresenceProps = {
@@ -114,7 +107,7 @@ function App() {
 
   switch (currentViewType) {
     case 'timeline':
-      view = <TimelineDisplay timelineGroupId={currentTimelineGroupId} />;
+      view = <TimelineDisplay />;
       break;
     case 'memo':
       view = <MemoDisplay />;
@@ -172,17 +165,14 @@ function App() {
                 <Button
                   variant="outline"
                   onClick={() => {
-                    handleTimelineGroupEdit(null);
+                    editTimelineGroupDialog.setOpen(true);
+                    setEditingGroup(null);
                   }}
                 >
                   <LuPlus />
                   新建
                 </Button>
-                <EditTimelineGroupDialog
-                  key={editingGroup?.id}
-                  control={editTimelineGroupDialog}
-                  group={editingGroup}
-                />
+                <EditTimelineGroupDialog key={`${editingGroup}`} control={editTimelineGroupDialog} />
               </Presence>
 
               <Presence present={currentViewType === 'memo'} {...presenceStyle}>

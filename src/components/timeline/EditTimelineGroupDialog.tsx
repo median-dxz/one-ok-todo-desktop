@@ -1,31 +1,22 @@
-import { addTimelineGroupAtom } from '@/store/timelineGroup';
-import { timelineGroupsAtom } from '@/store/timelineGroup';
-import type { TimelineGroup } from '@/types/timeline';
+import { editingTLGroupAtom, editTimelineGroupStateAtom } from '@/store/timelineGroup';
 import { Button, Dialog, Field, Input, Portal, type UseDialogReturn } from '@chakra-ui/react';
-import { useSetAtom } from 'jotai';
+import { produce } from 'immer';
+import { useAtom, useAtomValue } from 'jotai';
 import { useState } from 'react';
 
 interface EditTimelineGroupDialogProps {
   control: UseDialogReturn;
-  group?: TimelineGroup | null;
 }
 
-export const EditTimelineGroupDialog = ({ control, group }: EditTimelineGroupDialogProps) => {
-  const [title, setTitle] = useState(group?.title ?? '');
-
-  const addTimelineGroups = useSetAtom(addTimelineGroupAtom);
-  const updateTimelineGroups = useSetAtom(timelineGroupsAtom);
-
-  const isEditMode = Boolean(group);
+export const EditTimelineGroupDialog = ({ control }: EditTimelineGroupDialogProps) => {
+  const isEditMode = Boolean(useAtomValue(editingTLGroupAtom));
+  const [editInitialValues, saveEdited] = useAtom(editTimelineGroupStateAtom);
+  const [group, setGroup] = useState(editInitialValues);
+  const title = group.title;
 
   const handleSubmit = () => {
     if (title.trim()) {
-      if (isEditMode) {
-        updateTimelineGroups((prev) => prev.map((item) => (item.id === group?.id ? { ...item, title } : item)));
-      } else {
-        addTimelineGroups({ title });
-      }
-      setTitle('');
+      saveEdited(group);
       control.setOpen(false);
     }
   };
@@ -42,7 +33,17 @@ export const EditTimelineGroupDialog = ({ control, group }: EditTimelineGroupDia
             <Dialog.Body>
               <Field.Root>
                 <Field.Label>组名称</Field.Label>
-                <Input placeholder="输入组名称" value={title} onChange={(e) => setTitle(e.target.value)} />
+                <Input
+                  placeholder="输入组名称"
+                  value={title}
+                  onChange={(e) =>
+                    setGroup(
+                      produce((group) => {
+                        group.title = e.target.value;
+                      }),
+                    )
+                  }
+                />
               </Field.Root>
             </Dialog.Body>
             <Dialog.Footer>

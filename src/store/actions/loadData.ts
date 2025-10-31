@@ -1,11 +1,10 @@
-import { loadData } from "@/utils/storage";
-import { atom } from "jotai";
-import { _appDataAtom } from "../appAtom";
-import { _memoAtom } from "../memoAtom";
-import { _timelineGroupsAtom, selectedTimelineGroupIdAtom } from "../timelineGroup";
+import { loadData } from '@/utils/storage';
+import { atom } from 'jotai';
+import { _appDataAtom } from '../appAtom';
+import { _memoAtom } from '../memoAtom';
+import { _timelineGroupsAtom, selectedTLGroupRefAtom, timelineGroupAtomsAtom } from '../timelineGroup';
 
-
-export const loadDataAtom = atom(null, async (_get, set) => {
+export const loadDataAtom = atom(null, async (get, set) => {
   console.log('[Persistence] Loading data...');
   const data = await loadData();
   const { memo, timelineGroups, ...appData } = data;
@@ -17,9 +16,9 @@ export const loadDataAtom = atom(null, async (_get, set) => {
 
   // 设置默认选中的时间线组
   if (timelineGroups.length > 0) {
-    set(selectedTimelineGroupIdAtom, timelineGroups[0].id);
+    set(selectedTLGroupRefAtom, get(timelineGroupAtomsAtom)[0]);
   } else {
-    set(selectedTimelineGroupIdAtom, null);
+    set(selectedTLGroupRefAtom, null);
   }
 
   console.log('[Persistence] Data loaded successfully');

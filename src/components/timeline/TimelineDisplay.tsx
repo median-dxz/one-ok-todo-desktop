@@ -2,28 +2,23 @@ import { Flex, Heading } from '@chakra-ui/react';
 import type { NodeMouseHandler } from '@xyflow/react';
 import { Controls, MiniMap, ReactFlow } from '@xyflow/react';
 import { useAtomValue } from 'jotai';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 
 import '@xyflow/react/dist/style.css';
 
-import { useTimelineGroupAtom } from '@/store/timelineGroup';
+import { reactFlowObjectsAtom } from '@/store/reactFlowObjects';
+import { selectedTLGroupValueAtom } from '@/store/timelineGroup';
+import { DelimiterComponent } from './DelimiterComponent';
 import { EmptyTimelineGroupScreen } from './EmptyTimelineGroupScreen';
 import { EmptyTimelineScreen } from './EmptyTimelineScreen';
 import { RightSidebar } from './RightSidebar';
-import { TimelineChat } from './TimelineChat';
 import { TaskNodeComponent } from './TaskNodeComponent';
-import { DelimiterComponent } from './DelimiterComponent';
-import { createReactFlowObjects } from './createReactFlowObjects';
+import { TimelineChat } from './TimelineChat';
 
-interface TimelineDisplayProps {
-  timelineGroupId: string | null;
-}
+export function TimelineDisplay() {
+  const group = useAtomValue(selectedTLGroupValueAtom);
 
-export function TimelineDisplay({ timelineGroupId }: TimelineDisplayProps) {
-  const groupAtom = useTimelineGroupAtom(timelineGroupId);
-  const group = useAtomValue(groupAtom);
-
-  const { nodes, edges } = useMemo(() => (group ? createReactFlowObjects(group) : { nodes: [], edges: [] }), [group]);
+  const { nodes, edges } = useAtomValue(reactFlowObjectsAtom);
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
@@ -31,7 +26,7 @@ export function TimelineDisplay({ timelineGroupId }: TimelineDisplayProps) {
     setSelectedNodeId(node.id);
   };
 
-  const onCloseSidebar = () => {
+  const handleCloseSidebar = () => {
     setSelectedNodeId(null);
   };
 
@@ -40,7 +35,7 @@ export function TimelineDisplay({ timelineGroupId }: TimelineDisplayProps) {
   }
 
   if (group.timelines.length === 0) {
-    return <EmptyTimelineScreen groupId={group.id} />;
+    return <EmptyTimelineScreen />;
   }
 
   return (
@@ -80,9 +75,9 @@ export function TimelineDisplay({ timelineGroupId }: TimelineDisplayProps) {
           <Controls />
           <MiniMap />
         </ReactFlow>
-        <TimelineChat timelineGroupId={group.id} />
+        <TimelineChat />
       </Flex>
-      <RightSidebar selectedNodeId={selectedNodeId} onClose={onCloseSidebar} />
+      <RightSidebar selectedNodeId={selectedNodeId} onClose={handleCloseSidebar} />
     </Flex>
   );
 }
