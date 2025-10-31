@@ -1,13 +1,14 @@
 import { Flex, Heading } from '@chakra-ui/react';
 import type { NodeMouseHandler } from '@xyflow/react';
-import { Controls, MiniMap, ReactFlow } from '@xyflow/react';
+import { Panel, ReactFlow } from '@xyflow/react';
 import { useAtomValue } from 'jotai';
 import { useState } from 'react';
 
 import '@xyflow/react/dist/style.css';
 
-import { reactFlowObjectsAtom } from '@/store/reactFlowObjects';
+import { reactFlowObjectsAtom, type RFNode } from '@/store/reactFlowObjects';
 import { selectedTLGroupValueAtom } from '@/store/timelineGroup';
+import type { TimelineNode } from '@/types/timeline';
 import { DelimiterComponent } from './DelimiterComponent';
 import { EmptyTimelineGroupScreen } from './EmptyTimelineGroupScreen';
 import { EmptyTimelineScreen } from './EmptyTimelineScreen';
@@ -20,14 +21,14 @@ export function TimelineDisplay() {
 
   const { nodes, edges } = useAtomValue(reactFlowObjectsAtom);
 
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [selectedNode, setSelectedNode] = useState<RFNode<TimelineNode> | null>(null);
 
-  const onNodeClick: NodeMouseHandler = (_evt, node) => {
-    setSelectedNodeId(node.id);
+  const onNodeClick: NodeMouseHandler<RFNode<TimelineNode>> = (_evt, node) => {
+    setSelectedNode(node);
   };
 
   const handleCloseSidebar = () => {
-    setSelectedNodeId(null);
+    setSelectedNode(null);
   };
 
   if (group == null) {
@@ -72,12 +73,12 @@ export function TimelineDisplay() {
           onNodeClick={onNodeClick}
           fitView
         >
-          <Controls />
-          <MiniMap />
+          <Panel position="bottom-center">
+            <TimelineChat />
+          </Panel>
         </ReactFlow>
-        <TimelineChat />
       </Flex>
-      <RightSidebar selectedNodeId={selectedNodeId} onClose={handleCloseSidebar} />
+      <RightSidebar node={selectedNode} onClose={handleCloseSidebar} />
     </Flex>
   );
 }

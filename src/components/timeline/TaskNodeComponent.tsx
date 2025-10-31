@@ -1,88 +1,152 @@
-import type { SubTask, TaskNode } from '@/types/timeline';
-import { Box, Checkbox, Heading, HStack, Icon, VStack } from '@chakra-ui/react';
-import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { FaCheck } from 'react-icons/fa';
 import type { RFNode } from '@/store/reactFlowObjects';
+import type { TaskNode } from '@/types/timeline';
+import { Box, HStack, Icon, Text, VStack } from '@chakra-ui/react';
+import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { LuCircle, LuCircleCheckBig, LuLock, LuSkipForward, LuStar } from 'react-icons/lu';
 
-export function TaskNodeComponent({ data }: NodeProps<RFNode<TaskNode>>) {
-  const taskNode = data;
-  const isLocked = taskNode.status === 'lock';
-
-  const getStatusStyles = () => {
-    if (taskNode.milestone) {
-      return {
-        bg: 'blue.500',
-        borderColor: 'blue.500',
-      };
-    }
-    switch (taskNode.status) {
-      case 'todo':
-        return {
-          borderColor: 'blue.500',
-          borderWidth: 2,
-          bg: 'white',
-        };
-      case 'done':
-        return {
-          bg: 'green.500',
-          borderColor: 'green.500',
-        };
-      case 'lock':
-        return {
-          bg: 'gray.200',
-          borderColor: 'gray.400',
-        };
-      default:
-        return {
-          bg: 'gray.100',
-          borderColor: 'gray.300',
-        };
-    }
+interface TaskNodePropsConfig {
+  icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
+  color: {
+    iconBg: string;
+    iconColor: string;
+    textColor: string;
+    labelColor: string;
+    borderColor: string;
+    hoverBg: string;
   };
+  label: string;
+  textDecoration?: string;
+  opacity?: number;
+}
 
-  const statusStyles = getStatusStyles();
+const taskNodeProps: Record<TaskNode['status'], TaskNodePropsConfig> = {
+  todo: {
+    icon: LuCircle,
+    color: {
+      iconBg: 'gray.100',
+      iconColor: 'gray.600',
+      textColor: 'gray.800',
+      labelColor: 'gray.500',
+      borderColor: 'gray.300',
+      hoverBg: 'gray.50',
+    },
+    label: 'TODO',
+  },
+  done: {
+    icon: LuCircleCheckBig,
+    color: {
+      iconBg: 'green.500',
+      iconColor: 'white',
+      textColor: 'green.700',
+      labelColor: 'gray.500',
+      borderColor: 'green.500',
+      hoverBg: 'green.50',
+    },
+    label: 'DONE',
+    textDecoration: 'line-through',
+  },
+  skipped: {
+    icon: LuSkipForward,
+    color: {
+      iconBg: 'orange.400',
+      iconColor: 'white',
+      textColor: 'orange.700',
+      labelColor: 'gray.500',
+      borderColor: 'orange.400',
+      hoverBg: 'orange.50',
+    },
+    label: 'SKIPPED',
+  },
+  lock: {
+    icon: LuLock,
+    color: {
+      iconBg: 'gray.300',
+      iconColor: 'white',
+      textColor: 'gray.500',
+      labelColor: 'gray.400',
+      borderColor: 'gray.300',
+      hoverBg: 'gray.100',
+    },
+    label: 'LOCKED',
+    opacity: 0.7,
+  },
+} as const;
+
+export function TaskNodeComponent({ data: node }: NodeProps<RFNode<TaskNode>>) {
+  const theme = taskNodeProps[node.status] ?? taskNodeProps.todo;
+  const IconComp = theme.icon;
 
   return (
     <>
       <Handle type="target" position={Position.Left} />
-      <HStack
-        w="100%"
-        align="center"
-        cursor="pointer"
-        opacity={isLocked ? 0.6 : 1}
-        _hover={{ bg: 'gray.100' }}
-        p={2}
-        borderRadius="md"
-        bg="white"
+      <Box
+        display="flex"
+        alignItems="center"
+        minW="180px"
+        h="4rem"
+        borderRadius="lg"
         border="1px solid"
-        borderColor="gray.200"
+        borderColor={theme.color.borderColor}
+        p={3}
+        shadow="sm"
+        bg="white"
+        position="relative"
+        overflow="hidden"
+        _hover={{
+          shadow: 'md',
+          bg: theme.color.hoverBg,
+        }}
+        css={{
+          transition: 'background 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
       >
-        <Box
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          boxSize="24px"
-          borderRadius="full"
-          {...statusStyles}
-        >
-          {taskNode.status === 'done' && <Icon as={FaCheck} color="white" boxSize="12px" />}
-        </Box>
-        <VStack align="stretch" gap={1} flex={1}>
-          <Heading size="sm">{taskNode.title}</Heading>
-          {taskNode.subtasks && taskNode.subtasks.length > 0 && (
-            <VStack w="100%" align="stretch" gap={2} pl={4}>
-              {taskNode.subtasks.map((subtask: SubTask, index: number) => (
-                <HStack key={`${taskNode.id}-subtask-${index}`} w="100%">
-                  <Checkbox.Root readOnly>
-                    <Checkbox.Control />
-                    <Checkbox.Label>{subtask.title}</Checkbox.Label>
-                  </Checkbox.Root>
-                </HStack>
-              ))}
-            </VStack>
-          )}
-        </VStack>
-      </HStack>
+        {node.milestone && (
+          <Box
+            position="absolute"
+            top={-1}
+            right={-1}
+            w="24px"
+            h="24px"
+            bg="yellow.400"
+            clipPath="polygon(100% 0, 0 0, 100% 100%)"
+          >
+            <Icon as={LuStar} color="white" position="absolute" top="2px" right="2px" boxSize="10px" fill="white" />
+          </Box>
+        )}
+
+        <HStack gap={3} align="center" opacity={theme.opacity ?? 1}>
+          <Box
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            w="40px"
+            h="40px"
+            borderRadius="full"
+            bg={theme.color.iconBg}
+            color={theme.color.iconColor}
+            shadow="sm"
+          >
+            <IconComp size={20} strokeWidth={2.5} />
+          </Box>
+          <VStack align="flex-start" gap={0.5}>
+            <Text fontSize="xs" fontWeight="500" color={theme.color.labelColor} lineHeight="1">
+              {theme.label}
+            </Text>
+            <Text
+              fontSize="sm"
+              fontWeight="600"
+              color={theme.color.textColor}
+              lineHeight="1.2"
+              lineClamp={1}
+              textDecoration={theme.textDecoration}
+              textOverflow="ellipsis"
+              maxW="100px"
+            >
+              {node.title}
+            </Text>
+          </VStack>
+        </HStack>
+      </Box>
       <Handle type="source" position={Position.Right} />
     </>
   );

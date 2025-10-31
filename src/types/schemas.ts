@@ -31,11 +31,13 @@ const BaseNodeSchema = z.object({
 
 export const SubTaskSchema = z.object({
   title: z.string().min(1),
+  status: z.enum(['todo', 'done']),
 });
 
 export const TaskNodeSchema = BaseNodeSchema.extend({
   type: z.literal('task'),
   title: z.string(),
+  description: z.string().optional(),
   status: NodeStatusSchema,
   executionConfig: ExecutionModeConfigSchema.optional(),
   subtasks: z.array(SubTaskSchema).optional(),

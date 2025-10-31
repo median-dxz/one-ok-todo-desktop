@@ -12,7 +12,7 @@ import { timelineAtomsAtom } from './timeline';
 import { selectedTLGroupValueAtom } from './timelineGroup';
 
 type ExtendedTLNode<T extends BaseNode> = T & { timelineAtom: PrimitiveAtom<Timeline> };
-export type RFNode<T extends BaseNode = TimelineNode> = Node<ExtendedTLNode<T>, TimelineNodeType | 'unknown'>;
+export type RFNode<T extends BaseNode = TimelineNode> = Node<ExtendedTLNode<T>, TimelineNodeType | string>;
 
 const NODE_GAP = 200;
 

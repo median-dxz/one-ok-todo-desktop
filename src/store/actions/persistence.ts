@@ -1,7 +1,7 @@
 import type { AppData } from '@/types/app';
 import type { MemoNode } from '@/types/memo';
 import type { TimelineGroup } from '@/types/timeline';
-import { debounce } from '@/utils/debounce';
+import { debounce } from "@/utils";
 import { saveData } from '@/utils/storage';
 import { produce } from 'immer';
 import { type Getter, type Setter } from 'jotai';

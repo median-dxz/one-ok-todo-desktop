@@ -43,7 +43,7 @@ export const updateNodeTitleAtom = atom(
       const timeline = findTimeline(draft, timelineId);
       if (timeline && 'nodes' in timeline) {
         const node = timeline.nodes.find((n) => n.id === nodeId);
-        if (node) {
+        if (node && node.type === 'task') {
           node.title = newTitle;
         }
       }

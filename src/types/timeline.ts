@@ -33,6 +33,7 @@ export type TaskNode = BaseNode & {
   type: 'task';
 
   title: string; // 节点标题
+  description?: string; // 节点描述
   status: NodeStatus; // 节点状态
 
   executionConfig?: ExecutionModeConfig; // 任务执行模式
@@ -44,6 +45,7 @@ export type TaskNode = BaseNode & {
 // 子任务
 export interface SubTask {
   title: string;
+  status: Exclude<NodeStatus, 'lock' | 'skipped'>;
 }
 
 export type DelimiterNode = BaseNode & {
