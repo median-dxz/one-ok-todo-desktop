@@ -1,11 +1,23 @@
-import type { AppData } from '@/types/app';
 import type { MemoNode } from '@/types/memo';
 import type { TimelineGroup } from '@/types/timeline';
+import type { StoreState } from '@/store';
 
-import { appDataAtom } from '@/store/appAtom';
-import { memoAtom } from '@/store/memoAtom';
-import { selectedTLGroupRefAtom, timelineGroupsAtom } from '@/store/timelineGroup';
-import { atom } from 'jotai';
+/**
+ * 加载模拟数据到store
+ */
+export const loadMockData = (setState: (partial: Partial<StoreState>) => void) => {
+  console.log('[MockData] Loading mock data...');
+
+  setState({
+    timelineGroups: initialTimelineGroups,
+    memo: initialMemo,
+    selectedTimelineGroupId: initialTimelineGroups[0]?.id || null,
+    view: 'timeline',
+    isAppDataLoaded: true,
+  });
+
+  console.log('[MockData] Mock data loaded successfully');
+};
 
 export const initialTimelineGroups: TimelineGroup[] = [
   {
@@ -274,7 +286,7 @@ export const initialTimelineGroups: TimelineGroup[] = [
             id: 'recurrence-1',
             type: 'task',
             title: '阅读技术文章',
-            status: 'done',
+            status: 'skipped',
             prevs: [],
             succs: [],
             completedDate: '2025-10-28T10:00:00Z',
@@ -294,7 +306,32 @@ export const initialTimelineGroups: TimelineGroup[] = [
           occurrencesPerWeek: 3,
         },
         pattern: {
-          tasks: ['阅读技术文章', '运动1小时', '写周报'],
+          taskTemplates: [
+            {
+              id: 'template-read',
+              type: 'task',
+              title: '阅读技术文章',
+              status: 'todo',
+              prevs: [],
+              succs: [],
+            },
+            {
+              id: 'template-exercise',
+              type: 'task',
+              title: '运动1小时',
+              status: 'todo',
+              prevs: [],
+              succs: [],
+            },
+            {
+              id: 'template-report',
+              type: 'task',
+              title: '写周报',
+              status: 'todo',
+              prevs: [],
+              succs: [],
+            },
+          ],
           currentIndex: 0,
         },
       },
@@ -326,7 +363,32 @@ export const initialTimelineGroups: TimelineGroup[] = [
         ],
         frequency: 'daily',
         pattern: {
-          tasks: ['俯卧撑 50个', '深蹲 100个', '平板支撑 3分钟'],
+          taskTemplates: [
+            {
+              id: 'template-pushup',
+              type: 'task',
+              title: '俯卧撑 50个',
+              status: 'todo',
+              prevs: [],
+              succs: [],
+            },
+            {
+              id: 'template-squat',
+              type: 'task',
+              title: '深蹲 100个',
+              status: 'todo',
+              prevs: [],
+              succs: [],
+            },
+            {
+              id: 'template-plank',
+              type: 'task',
+              title: '平板支撑 3分钟',
+              status: 'todo',
+              prevs: [],
+              succs: [],
+            },
+          ],
           currentIndex: 0,
         },
       },
@@ -382,25 +444,3 @@ export const initialMemo: MemoNode[] = [
     ],
   },
 ];
-
-export const initialAppData: AppData = {
-  version: '3.0',
-  metadata: {
-    lastModified: new Date().toISOString(),
-    syncStatus: 'synced',
-  },
-};
-
-// 加载假数据的 atom
-export const loadMockDataAtom = atom(null, (_get, set) => {
-  console.log('[MockData] Loading mock data...');
-
-  set(selectedTLGroupRefAtom, null);
-
-  // 直接设置假数据
-  set(timelineGroupsAtom, initialTimelineGroups);
-  set(memoAtom, initialMemo);
-  set(appDataAtom, initialAppData);
-
-  console.log('[MockData] Mock data loaded successfully');
-});

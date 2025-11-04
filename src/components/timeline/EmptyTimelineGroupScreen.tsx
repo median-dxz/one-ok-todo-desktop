@@ -1,12 +1,11 @@
-import { editingTLGroupAtom } from '@/store/timelineGroup';
 import { Box, Button, Center, Heading, useDialog, VStack } from '@chakra-ui/react';
-import { useSetAtom } from 'jotai';
 import { LuPlus, LuFolderOpen } from 'react-icons/lu';
 import { EditTimelineGroupDialog } from './EditTimelineGroupDialog';
+import { useAppStore } from '@/store';
 
 export const EmptyTimelineGroupScreen = () => {
   const newTimelineGroupDialog = useDialog();
-  const setEditingTLGroup = useSetAtom(editingTLGroupAtom);
+  const setEditingTimelineGroup = useAppStore(state => state.setEditingTimelineGroup);
 
   return (
     <Center h="100%">
@@ -21,7 +20,7 @@ export const EmptyTimelineGroupScreen = () => {
           variant="solid"
           size="sm"
           onClick={() => {
-            setEditingTLGroup(null);
+            setEditingTimelineGroup(null);
             newTimelineGroupDialog.setOpen(true);
           }}
         >

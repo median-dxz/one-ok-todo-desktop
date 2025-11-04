@@ -1,22 +1,36 @@
-import { editingTLGroupAtom, editTimelineGroupStateAtom } from '@/store/timelineGroup';
+import { useAppStore } from '@/store';
+import { createTimelineGroup, DIRTY_TIMELINE_GROUP } from '@/store/timelineSlice';
 import { Button, Dialog, Field, Input, Portal, type UseDialogReturn } from '@chakra-ui/react';
 import { produce } from 'immer';
-import { useAtom, useAtomValue } from 'jotai';
 import { useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 
 interface EditTimelineGroupDialogProps {
   control: UseDialogReturn;
 }
 
 export const EditTimelineGroupDialog = ({ control }: EditTimelineGroupDialogProps) => {
-  const isEditMode = Boolean(useAtomValue(editingTLGroupAtom));
-  const [editInitialValues, saveEdited] = useAtom(editTimelineGroupStateAtom);
-  const [group, setGroup] = useState(editInitialValues);
+  const { addTimelineGroup, updateTimelineGroup, editingTimelineGroup, setEditingTimelineGroup } = useAppStore(
+    useShallow((state) => ({
+      addTimelineGroup: state.addTimelineGroup,
+      updateTimelineGroup: state.updateTimelineGroup,
+      setEditingTimelineGroup: state.setEditingTimelineGroup,
+      editingTimelineGroup: state.editingTimelineGroup,
+    })),
+  );
+
+  const isEditMode = Boolean(editingTimelineGroup);
+  const [group, setGroup] = useState(editingTimelineGroup ?? createTimelineGroup());
   const title = group.title;
 
   const handleSubmit = () => {
     if (title.trim()) {
-      saveEdited(group);
+      if (isEditMode) {
+        updateTimelineGroup(group.id, () => group);
+      } else {
+        addTimelineGroup(group);
+        setEditingTimelineGroup(DIRTY_TIMELINE_GROUP);
+      }
       control.setOpen(false);
     }
   };
@@ -38,8 +52,8 @@ export const EditTimelineGroupDialog = ({ control }: EditTimelineGroupDialogProp
                   value={title}
                   onChange={(e) =>
                     setGroup(
-                      produce((group) => {
-                        group.title = e.target.value;
+                      produce((draft) => {
+                        draft.title = e.target.value;
                       }),
                     )
                   }

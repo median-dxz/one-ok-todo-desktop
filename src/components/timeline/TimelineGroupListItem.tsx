@@ -1,37 +1,42 @@
 import { Flex, IconButton, Menu, Portal, Text, type SystemStyleObject } from '@chakra-ui/react';
-import { useAtom, useAtomValue, useSetAtom, type PrimitiveAtom } from 'jotai';
 import { FiEdit, FiList, FiMoreVertical, FiTrash2 } from 'react-icons/fi';
 
-import { viewAtom } from '@/store/appAtom';
-import { deleteTimelineGroupAtom, editingTLGroupAtom, selectedTLGroupRefAtom } from '@/store/timelineGroup';
-import type { TimelineGroup } from '@/types/timeline';
-import type { MouseEventHandler } from 'react';
+import { useAppStore } from '@/store';
+import { type MouseEventHandler } from 'react';
+import { useShallow } from 'zustand/react/shallow';
+import { selectTimelineGroupById } from '@/store/timelineSlice';
 
 interface TimelineListItemProps {
   slotId: string; // Swapy slot ID
   itemId: string; // Swapy item ID
-  groupAtom: PrimitiveAtom<TimelineGroup>;
+  groupId: string;
   onEdit: () => void;
 }
 
-export function TimelineGroupListItem({ groupAtom, onEdit, slotId, itemId }: TimelineListItemProps) {
-  const [currentTimelineGroup, setCurrentTimelineGroup] = useAtom(selectedTLGroupRefAtom);
-  const group = useAtomValue(groupAtom);
-  const deleteGroup = useSetAtom(deleteTimelineGroupAtom);
-  const setView = useSetAtom(viewAtom);
-  const setEditingTLGroup = useSetAtom(editingTLGroupAtom);
-
-  const selected = currentTimelineGroup?.toString() === groupAtom.toString();
+export function TimelineGroupListItem({ groupId, onEdit, slotId, itemId }: TimelineListItemProps) {
+  const { currentTLGroupId, setSelectedTimelineGroup, deleteTimelineGroup, setView, setEditingTimelineGroup } =
+    useAppStore(
+      useShallow((state) => ({
+        timelineGroups: state.timelineGroups,
+        currentTLGroupId: state.selectedTimelineGroupId,
+        setSelectedTimelineGroup: state.setSelectedTimelineGroupId,
+        deleteTimelineGroup: state.deleteTimelineGroup,
+        setView: state.setView,
+        setEditingTimelineGroup: state.setEditingTimelineGroup,
+      })),
+    );
+  const group = useAppStore(selectTimelineGroupById(groupId))!;
+  const selected = currentTLGroupId === groupId;
 
   const handleSelect: MouseEventHandler = (e) => {
     e.stopPropagation();
-    setCurrentTimelineGroup(groupAtom);
+    setSelectedTimelineGroup(groupId);
     setView('timeline');
   };
 
   const handleDelete: MouseEventHandler = (e) => {
     e.stopPropagation();
-    deleteGroup(groupAtom);
+    deleteTimelineGroup(groupId);
   };
 
   const itemStyles: SystemStyleObject = {
@@ -84,7 +89,7 @@ export function TimelineGroupListItem({ groupAtom, onEdit, slotId, itemId }: Tim
                 <Menu.Item
                   value="edit"
                   onClick={() => {
-                    setEditingTLGroup(groupAtom);
+                    setEditingTimelineGroup(group);
                     onEdit();
                   }}
                 >

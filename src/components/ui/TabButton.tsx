@@ -1,7 +1,7 @@
+import { useAppStore } from '@/store';
+import type { ViewType } from '@/store/appSlice';
 import { Box, Button, type ButtonProps } from '@chakra-ui/react';
-import { useAtom } from 'jotai';
 import { useMemo } from 'react';
-import { viewAtom, type ViewType } from '../../store/appAtom';
 
 export const TabButton = ({
   view,
@@ -11,7 +11,7 @@ export const TabButton = ({
 }: {
   view: ViewType;
 } & ButtonProps) => {
-  const [currentView, setView] = useAtom(viewAtom);
+  const { view: currentView, setView } = useAppStore();
 
   const buttonStyles = useMemo(
     () =>

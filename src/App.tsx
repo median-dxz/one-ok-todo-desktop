@@ -13,8 +13,8 @@ import {
   VStack,
   type PresenceProps,
 } from '@chakra-ui/react';
-import { useAtom, useSetAtom } from 'jotai';
-import { useCallback, useEffect, useState, type ReactElement } from 'react';
+import { useCallback, useState, type ReactElement } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 
 import './App.css';
 
@@ -27,10 +27,8 @@ import { TimelineDisplay } from '@/components/timeline/TimelineDisplay';
 import { TimelineGroupList } from '@/components/timeline/TimelineGroupList';
 import { Loading } from '@/components/ui/Loading';
 import { TabButton } from '@/components/ui/TabButton';
-import { viewAtom } from '@/store/appAtom';
-import { editingTLGroupAtom } from '@/store/timelineGroup';
-import { loadMockDataAtom } from '@/utils/mockData';
-import { loadDataAtom } from './store/actions/loadData';
+import { useAppStore } from '@/store';
+import { loadMockData } from '@/utils/mockData';
 
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
 
@@ -42,22 +40,24 @@ const syncStatusColors = {
 };
 
 function App() {
-  const [currentViewType, setViewType] = useAtom(viewAtom);
+  const { currentViewType, isAppDataLoaded, editingTimelineGroup, setEditingTimelineGroup } = useAppStore(
+    useShallow((state) => ({
+      currentViewType: state.view,
+      isAppDataLoaded: state.isAppDataLoaded,
+      editingTimelineGroup: state.editingTimelineGroup,
+      setEditingTimelineGroup: state.setEditingTimelineGroup,
+    })),
+  );
+
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
-  const loadData = useSetAtom(loadDataAtom);
-  const loadMockData = useSetAtom(loadMockDataAtom);
 
   const editTimelineGroupDialog = useDialog();
-  const [editingGroup, setEditingGroup] = useAtom(editingTLGroupAtom);
 
   const handleSync = async () => {
     setSyncStatus('syncing');
     try {
       // 模拟同步延迟
       await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // 直接加载 mockData（假数据）
-      loadMockData();
 
       // IMPORTANT: Replace with your actual WebDAV credentials
       /*
@@ -71,6 +71,9 @@ function App() {
       await downloadFromWebDAV(webdavOptions);
       */
 
+      // 加载模拟数据
+      await loadMockData(useAppStore.setState);
+
       setSyncStatus('success');
 
       // 2秒后重置状态
@@ -83,10 +86,6 @@ function App() {
       setTimeout(() => setSyncStatus('idle'), 2000);
     }
   };
-
-  useEffect(() => {
-    void loadData().then(() => setViewType('timeline'));
-  }, [loadData, setViewType]);
 
   const handleTimelineGroupEdit = useCallback(() => {
     editTimelineGroupDialog.setOpen(true);
@@ -104,6 +103,10 @@ function App() {
     animationName: { _open: 'scale-in, fade-in' },
     animationDuration: 'moderate',
   };
+
+  if (!isAppDataLoaded) {
+    return <Loading text="Loading..." size="lg" withOverlay />;
+  }
 
   switch (currentViewType) {
     case 'timeline':
@@ -159,20 +162,20 @@ function App() {
             {/* 时间线组区域 */}
             <Box flex={1}>
               <Presence present={currentViewType === 'timeline'} {...presenceStyle}>
-                <TimelineGroupList onEdit={handleTimelineGroupEdit} />
+                <TimelineGroupList key={syncStatus} onEdit={handleTimelineGroupEdit} />
 
                 <Spacer />
                 <Button
                   variant="outline"
                   onClick={() => {
+                    setEditingTimelineGroup(null);
                     editTimelineGroupDialog.setOpen(true);
-                    setEditingGroup(null);
                   }}
                 >
                   <LuPlus />
                   新建
                 </Button>
-                <EditTimelineGroupDialog key={`${editingGroup}`} control={editTimelineGroupDialog} />
+                <EditTimelineGroupDialog key={editingTimelineGroup?.id} control={editTimelineGroupDialog} />
               </Presence>
 
               <Presence present={currentViewType === 'memo'} {...presenceStyle}>

@@ -1,9 +1,8 @@
 import { VStack } from '@chakra-ui/react';
-import { useAtomValue, useSetAtom } from 'jotai';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createSwapy, utils } from 'swapy';
 
-import { reorderTimelineGroupsAtom, timelineGroupAtomsAtom, timelineGroupsAtom } from '@/store/timelineGroup';
+import { useAppStore } from '@/store';
 import { TimelineGroupListItem } from './TimelineGroupListItem';
 
 interface TimelineGroupListProps {
@@ -11,24 +10,19 @@ interface TimelineGroupListProps {
 }
 
 export function TimelineGroupList({ onEdit }: TimelineGroupListProps) {
-  const reorderTimelineGroups = useSetAtom(reorderTimelineGroupsAtom);
-  const timelineGroups = useAtomValue(timelineGroupsAtom);
-  const atoms = useAtomValue(timelineGroupAtomsAtom);
-  const groupWithAtoms = useMemo(
-    () => timelineGroups.map((group, index) => ({ group, atom: atoms[index], id: group.id })),
-    [timelineGroups, atoms],
-  );
+  const reorderTimelineGroups = useAppStore((state) => state.reorderTimelineGroups);
+  const timelineGroups = useAppStore((state) => state.timelineGroups);
 
   const swapyRef = useRef<ReturnType<typeof createSwapy> | null>(null);
   const swapyContainerRef = useRef<HTMLDivElement>(null);
 
   // 创建 slotItemMap 状态
-  const [slotItemMap, setSlotItemMap] = useState(utils.initSlotItemMap(groupWithAtoms, 'id'));
+  const [slotItemMap, setSlotItemMap] = useState(utils.initSlotItemMap(timelineGroups, 'id'));
 
   // 创建 slottedItems
   const slottedItems = useMemo(
-    () => utils.toSlottedItems(groupWithAtoms, 'id', slotItemMap),
-    [groupWithAtoms, slotItemMap],
+    () => utils.toSlottedItems(timelineGroups, 'id', slotItemMap),
+    [timelineGroups, slotItemMap],
   );
 
   // 初始化 Swapy
@@ -46,7 +40,7 @@ export function TimelineGroupList({ onEdit }: TimelineGroupListProps) {
     });
 
     swapyRef.current.onSwapEnd((event) => {
-      const newOrder = event.slotItemMap.asArray.map(({ item }) => item);
+      const newOrder = event.slotItemMap.asArray.map(({ item }) => item as string);
       reorderTimelineGroups(newOrder);
     });
 
@@ -57,17 +51,14 @@ export function TimelineGroupList({ onEdit }: TimelineGroupListProps) {
 
   // 在添加或删除项目时更新 Swapy 实例
   useEffect(() => {
-    utils.dynamicSwapy(swapyRef.current, groupWithAtoms, 'id', slotItemMap, setSlotItemMap);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [groupWithAtoms]);
+    utils.dynamicSwapy(swapyRef.current, timelineGroups, 'id', slotItemMap, setSlotItemMap);
+  }, [timelineGroups]);
 
   return (
     <VStack alignItems="stretch" gap={1} ref={swapyContainerRef}>
       {slottedItems.map(({ slotId, itemId, item }) => {
         if (!item) return null;
-        return (
-          <TimelineGroupListItem key={slotId} slotId={slotId} itemId={itemId} groupAtom={item.atom} onEdit={onEdit} />
-        );
+        return <TimelineGroupListItem key={slotId} slotId={slotId} itemId={itemId} groupId={item.id} onEdit={onEdit} />;
       })}
     </VStack>
   );

@@ -14,9 +14,6 @@ export default defineConfig([
     files: ['**/*.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     plugins: { js },
     extends: [js.configs.recommended],
-  },
-  {
-    files: ['**/*.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     languageOptions: { globals: globals.browser },
   },
   tsEslint.configs.recommended,
@@ -29,10 +26,9 @@ export default defineConfig([
       },
     },
   },
-  reactHooks.configs.flat['recommended-latest'],
-  reactRefresh.configs.vite,
   {
     files: ['**/*.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    ...reactHooks.configs.flat['recommended-latest'],
     rules: {
       'react/react-in-jsx-scope': 'off',
       '@typescript-eslint/no-unused-vars': [
@@ -41,8 +37,15 @@ export default defineConfig([
           caughtErrors: 'none',
         },
       ],
+      '@typescript-eslint/no-unused-expressions': [
+        'error',
+        {
+          allowShortCircuit: true,
+        },
+      ],
     },
   },
+  reactRefresh.configs.vite,
   {
     files: ['**/*.md'],
     plugins: { markdown },

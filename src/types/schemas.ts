@@ -66,20 +66,23 @@ export const MonthlyConfigSchema = z.object({
 
 export const RecurrenceFrequencySchema = z.union([z.literal('daily'), WeeklyConfigSchema, MonthlyConfigSchema]);
 
+export const RecurrenceTaskTemplateSchema = TaskNodeSchema.omit({
+  milestone: true,
+  executionConfig: true,
+});
+
 export const RecurrencePatternSchema = z.object({
-  tasks: z.array(z.string()),
+  taskTemplates: z.array(RecurrenceTaskTemplateSchema).min(1),
   currentIndex: z.number().optional(),
 });
 
 export const RecurrenceInstanceSchema = TaskNodeSchema.omit({
   milestone: true,
-  subtasks: true,
 });
 
 const BaseTimelineSchema = z.object({
   id: z.string(),
   title: z.string().min(1),
-  // 'task' | 'recurrence'
   type: z.enum(['task', 'recurrence']),
 });
 
@@ -92,7 +95,7 @@ export const RecurrenceTimelineSchema = BaseTimelineSchema.extend({
   type: z.literal('recurrence'),
   completedTasks: z.array(RecurrenceInstanceSchema),
   frequency: RecurrenceFrequencySchema,
-  pattern: RecurrencePatternSchema.optional(),
+  pattern: RecurrencePatternSchema,
   startDate: z.string(),
   endDate: z.string().optional(),
 });
@@ -118,7 +121,7 @@ export const MemoNodeSchema: z.ZodType<MemoNode> = z.lazy(() =>
   }),
 );
 
-export const AppDataSchema = z.object({
+export const AppMetadataSchema = z.object({
   version: z.string(),
   metadata: z
     .object({

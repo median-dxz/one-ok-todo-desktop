@@ -1,8 +1,6 @@
-import { addMemoNodeAtom } from '@/store/actions/memoActions';
-import { selectNodeTypeDialogAtom } from '@/store/memoAtom';
+import { useAppStore } from '@/store';
 import type { MemoNodeType } from '@/types/memo';
 import { Button, Dialog, Text, VStack } from '@chakra-ui/react';
-import { useAtom, useSetAtom } from 'jotai';
 import { FiFileText, FiFolder, FiHash, FiList, FiToggleLeft } from 'react-icons/fi';
 import type { IconType } from 'react-icons/lib';
 
@@ -19,20 +17,19 @@ const NODE_TYPE_OPTIONS: {
 ];
 
 export const SelectNodeTypeDialog = () => {
-  const [dialogState, setDialogState] = useAtom(selectNodeTypeDialogAtom);
-  const addNode = useSetAtom(addMemoNodeAtom);
+  const {
+    selectNodeTypeDialog: dialogState,
+    closeSelectNodeTypeDialog,
+    addMemoNode,
+  } = useAppStore();
 
   const handleSelect = (type: MemoNodeType) => {
-    addNode({ parentId: dialogState.parentId, type });
-    setDialogState({ isOpen: false, parentId: null });
-  };
-
-  const handleClose = () => {
-    setDialogState({ isOpen: false, parentId: null });
+    addMemoNode(dialogState.parentId, type);
+    closeSelectNodeTypeDialog();
   };
 
   return (
-    <Dialog.Root open={dialogState.isOpen} onOpenChange={handleClose}>
+    <Dialog.Root open={dialogState.isOpen} onOpenChange={closeSelectNodeTypeDialog}>
       <Dialog.Backdrop />
       <Dialog.Positioner>
         <Dialog.Content>

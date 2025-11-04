@@ -1,17 +1,17 @@
-import { updateOrInsertTimelineAtom, newTaskTimeline } from '@/store/timeline';
 import { Button, HStack, Input } from '@chakra-ui/react';
-import { useSetAtom } from 'jotai';
 import { useState } from 'react';
 import { LuPlus } from 'react-icons/lu';
+import { createTaskTimeline } from '@/store/timelineSlice';
+import { useAddTimeline } from '@/store/reactFlowStore';
 
 export function TimelineChat() {
   const [chatMsg, setChatMsg] = useState('');
-  const addTimeline = useSetAtom(updateOrInsertTimelineAtom);
+  const addTimeline = useAddTimeline();
   const [focusInput, setFocusInput] = useState(false);
 
   const onAddTimeline = () => {
     if (chatMsg.trim() === '') return;
-    addTimeline(newTaskTimeline(chatMsg));
+    addTimeline(createTaskTimeline(chatMsg));
     setChatMsg('');
   };
 
@@ -26,7 +26,7 @@ export function TimelineChat() {
         onBlur={() => setFocusInput(false)}
         onChange={(e) => setChatMsg(e.target.value)}
         flex={1}
-        minW={focusInput ? 'calc(max(30vw, 40%))' : '12rem'}
+        minW={focusInput || chatMsg ? 'calc(max(30vw, 40%))' : '12rem'}
         css={{
           transition: 'min-width 0.2s ease-in-out',
         }}

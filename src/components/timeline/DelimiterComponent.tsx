@@ -1,9 +1,8 @@
-import type { RFNode } from '@/store/reactFlowObjects';
+import type { RFNode } from '@/utils/reactFlowObjects';
 import type { DelimiterNode } from '@/types/timeline';
 import { Box, HStack, Text, VStack } from '@chakra-ui/react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { useAtomValue } from 'jotai';
-import { LuCircleCheckBig, LuPlay } from 'react-icons/lu';
+import { LuCalendarClock, LuCircleCheckBig, LuPlay } from 'react-icons/lu';
 
 interface DelimiterProps {
   icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
@@ -13,42 +12,54 @@ interface DelimiterProps {
     textColor: string;
     labelColor: string;
     borderColor: string;
+    selectedBorderColor: string;
     hoverBg: string;
   };
   label: string;
 }
 
-const delimiterProps: Record<DelimiterNode['markerType'], DelimiterProps> = {
+const delimiterProps: Record<DelimiterNode['markerType'], Omit<DelimiterProps, 'icon'>> = {
   start: {
-    icon: LuPlay,
     color: {
       iconBg: 'blue.500',
       iconColor: 'white',
       textColor: 'blue.700',
       labelColor: 'gray.600',
-      borderColor: 'blue.600',
+      borderColor: 'blue.300',
+      selectedBorderColor: 'blue.600',
       hoverBg: 'blue.100',
     },
     label: 'START',
   },
   end: {
-    icon: LuCircleCheckBig,
     color: {
       iconBg: 'green.500',
       iconColor: 'white',
       textColor: 'green.700',
       labelColor: 'gray.600',
-      borderColor: 'green.600',
+      borderColor: 'green.300',
+      selectedBorderColor: 'green.600',
       hoverBg: 'green.100',
     },
     label: 'FINISH',
   },
 } as const;
 
-export function DelimiterComponent({ data: node }: NodeProps<RFNode<DelimiterNode>>) {
+export function DelimiterComponent({ data: node, selected }: NodeProps<RFNode<DelimiterNode>>) {
   const theme = delimiterProps[node.markerType] ?? delimiterProps.start;
-  const Icon = theme.icon;
-  const timeline = useAtomValue(node.timelineAtom);
+  const timeline = node.timeline;
+
+  const Icon = (() => {
+    if (node.markerType === 'start') {
+      if (timeline?.type === 'recurrence') {
+        return LuCalendarClock;
+      } else {
+        return LuPlay;
+      }
+    } else {
+      return LuCircleCheckBig;
+    }
+  })();
 
   return (
     <>
@@ -60,10 +71,11 @@ export function DelimiterComponent({ data: node }: NodeProps<RFNode<DelimiterNod
         minW="160px"
         h="4rem"
         borderRadius="lg"
-        border="1px solid"
-        borderColor={theme.color.borderColor}
+        border="2px solid"
+        borderColor={selected ? theme.color.selectedBorderColor : theme.color.borderColor}
         p={3}
         shadow="sm"
+        boxSizing="border-box"
         _hover={{
           shadow: 'md',
           bg: theme.color.hoverBg,

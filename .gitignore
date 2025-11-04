@@ -28,3 +28,5 @@ dist-ssr
 playwright-report
 .playwright-mcp
 test-results
+
+.VSCodeCounter

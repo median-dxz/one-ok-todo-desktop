@@ -1,8 +1,8 @@
-import type { RFNode } from '@/store/reactFlowObjects';
+import type { RFNode } from '@/utils/reactFlowObjects';
 import type { TaskNode } from '@/types/timeline';
 import { Box, HStack, Icon, Text, VStack } from '@chakra-ui/react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { LuCircle, LuCircleCheckBig, LuLock, LuSkipForward, LuStar } from 'react-icons/lu';
+import { LuCalendarClock, LuCircle, LuCircleCheckBig, LuLock, LuSkipForward, LuStar } from 'react-icons/lu';
 
 interface TaskNodePropsConfig {
   icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
@@ -12,6 +12,7 @@ interface TaskNodePropsConfig {
     textColor: string;
     labelColor: string;
     borderColor: string;
+    selectedBorderColor: string;
     hoverBg: string;
   };
   label: string;
@@ -19,52 +20,52 @@ interface TaskNodePropsConfig {
   opacity?: number;
 }
 
-const taskNodeProps: Record<TaskNode['status'], TaskNodePropsConfig> = {
+const taskNodeProps: Record<TaskNode['status'], Omit<TaskNodePropsConfig, 'icon'>> = {
   todo: {
-    icon: LuCircle,
     color: {
       iconBg: 'gray.100',
       iconColor: 'gray.600',
       textColor: 'gray.800',
       labelColor: 'gray.500',
       borderColor: 'gray.300',
+      selectedBorderColor: 'blue.600',
       hoverBg: 'gray.50',
     },
     label: 'TODO',
   },
   done: {
-    icon: LuCircleCheckBig,
     color: {
       iconBg: 'green.500',
       iconColor: 'white',
       textColor: 'green.700',
       labelColor: 'gray.500',
       borderColor: 'green.500',
+      selectedBorderColor: 'green.700',
       hoverBg: 'green.50',
     },
     label: 'DONE',
     textDecoration: 'line-through',
   },
   skipped: {
-    icon: LuSkipForward,
     color: {
       iconBg: 'orange.400',
       iconColor: 'white',
       textColor: 'orange.700',
       labelColor: 'gray.500',
       borderColor: 'orange.400',
+      selectedBorderColor: 'orange.600',
       hoverBg: 'orange.50',
     },
     label: 'SKIPPED',
   },
   lock: {
-    icon: LuLock,
     color: {
       iconBg: 'gray.300',
       iconColor: 'white',
       textColor: 'gray.500',
       labelColor: 'gray.400',
       borderColor: 'gray.300',
+      selectedBorderColor: 'gray.600',
       hoverBg: 'gray.100',
     },
     label: 'LOCKED',
@@ -72,10 +73,23 @@ const taskNodeProps: Record<TaskNode['status'], TaskNodePropsConfig> = {
   },
 } as const;
 
-export function TaskNodeComponent({ data: node }: NodeProps<RFNode<TaskNode>>) {
+export function TaskNodeComponent({ data: node, selected }: NodeProps<RFNode<TaskNode>>) {
   const theme = taskNodeProps[node.status] ?? taskNodeProps.todo;
-  const IconComp = theme.icon;
+  const timeline = node.timeline;
 
+  const IconComp = (() => {
+    if (timeline?.type === 'recurrence' && node.status === 'todo') {
+      return LuCalendarClock;
+    } else if (node.status === 'done') {
+      return LuCircleCheckBig;
+    } else if (node.status === 'skipped') {
+      return LuSkipForward;
+    } else if (node.status === 'lock') {
+      return LuLock;
+    } else {
+      return LuCircle;
+    }
+  })();
   return (
     <>
       <Handle type="target" position={Position.Left} />
@@ -85,13 +99,14 @@ export function TaskNodeComponent({ data: node }: NodeProps<RFNode<TaskNode>>) {
         minW="180px"
         h="4rem"
         borderRadius="lg"
-        border="1px solid"
-        borderColor={theme.color.borderColor}
+        border="2px solid"
+        borderColor={selected ? theme.color.selectedBorderColor : theme.color.borderColor}
         p={3}
         shadow="sm"
         bg="white"
         position="relative"
         overflow="hidden"
+        boxSizing="border-box"
         _hover={{
           shadow: 'md',
           bg: theme.color.hoverBg,

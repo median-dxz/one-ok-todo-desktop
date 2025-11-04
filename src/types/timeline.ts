@@ -73,14 +73,17 @@ export interface MonthlyConfig {
   occurrencesPerMonth?: number;
 }
 
+export type RecurrenceTaskTemplate = Omit<TaskNode, 'milestone' | 'executionConfig'>;
+
 export interface RecurrencePattern {
-  // 任务序列（支持多任务轮换）
-  tasks: string[]; // 任务标题数组，例如 ["A", "B", "C"]
+  // 任务模板序列（支持多任务轮换）
+  // 长度为一时为单任务
+  taskTemplates: RecurrenceTaskTemplate[];
   // 当前轮换位置
   currentIndex?: number; // 默认 0
 }
 
-export type RecurrenceInstance = Omit<TaskNode, 'milestone' | 'subtasks'>;
+export type RecurrenceInstance = Omit<TaskNode, 'milestone'>;
 
 export interface BaseTimeline {
   id: string; // 时间线唯一标识
@@ -104,7 +107,7 @@ export interface RecurrenceTimeline extends BaseTimeline {
   frequency: RecurrenceFrequency;
 
   // 任务轮换模式
-  pattern?: RecurrencePattern;
+  pattern: RecurrencePattern;
 
   startDate: string;
   endDate?: string;

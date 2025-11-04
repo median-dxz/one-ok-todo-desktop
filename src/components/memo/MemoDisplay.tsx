@@ -1,18 +1,15 @@
 import { Box, Input, InputGroup, InputElement, VStack, Button, Icon } from '@chakra-ui/react';
-import { useAtomValue, useSetAtom } from 'jotai';
-import { memoAtom } from '../../store/memoAtom';
-import { selectNodeTypeDialogAtom } from '../../store/memoAtom';
+import { useAppStore } from '@/store';
 import type { MemoNode as MemoNodeType } from '../../types/memo'; // Import MemoNode type
 import { MemoNode } from './MemoNode';
 import { FiSearch, FiPlus } from 'react-icons/fi';
 import { SelectNodeTypeDialog } from './SelectNodeTypeDialog';
 
 export const MemoDisplay = () => {
-  const memoData = useAtomValue(memoAtom);
-  const setDialogState = useSetAtom(selectNodeTypeDialogAtom);
+  const { memo: memoData, openSelectNodeTypeDialog } = useAppStore();
 
   const handleAddRoot = () => {
-    setDialogState({ isOpen: true, parentId: null });
+    openSelectNodeTypeDialog(null);
   };
 
   return (

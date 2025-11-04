@@ -1,5 +1,5 @@
-import { createClient, type WebDAVClientOptions } from 'webdav';
 import * as path from '@tauri-apps/api/path';
+import { uploadToWebDAV as webdavUpload, downloadFromWebDAV as webdavDownload, type WebDAVConfig } from './webdav';
 
 type MockFs = {
   readTextFile: (filePath: string) => Promise<string>;
@@ -23,6 +23,7 @@ const fs: MockFs = {
 
 const REMOTE_DIR = '/OneOkTodo/data/';
 const DATA_FILE = 'root-data.json';
+const REMOTE_PATH = `${REMOTE_DIR}${DATA_FILE}`;
 
 async function getLocalFilePath(): Promise<string> {
   const docDir = await path.documentDir();
@@ -30,24 +31,14 @@ async function getLocalFilePath(): Promise<string> {
   return path.join(dataDirPath, DATA_FILE);
 }
 
-type SyncOptions = WebDAVClientOptions & { url: string };
-
 // Uploads local data to the WebDAV server.
-export async function uploadToWebDAV(options: SyncOptions) {
-  const client = createClient(options.url, {
-    username: options.username,
-    password: options.password,
-  });
-
+export async function uploadToWebDAV(config: WebDAVConfig) {
   try {
-    if (!(await client.exists(REMOTE_DIR))) {
-      await client.createDirectory(REMOTE_DIR, { recursive: true });
-    }
-
-  const filePath = await getLocalFilePath();
-  const fileContent = await fs.readTextFile(filePath);
-  await client.putFileContents(`${REMOTE_DIR}${DATA_FILE}`, fileContent);
-
+    const filePath = await getLocalFilePath();
+    const fileContent = await fs.readTextFile(filePath);
+    const data = JSON.parse(fileContent);
+    
+    await webdavUpload(config, data, REMOTE_PATH);
     console.log('Sync upload successful!');
   } catch (error) {
     console.error('Sync upload failed:', error);
@@ -56,16 +47,11 @@ export async function uploadToWebDAV(options: SyncOptions) {
 }
 
 // Downloads data from the WebDAV server and overwrites local data.
-export async function downloadFromWebDAV(options: SyncOptions) {
-  const client = createClient(options.url, {
-    username: options.username,
-    password: options.password,
-  });
-
+export async function downloadFromWebDAV(config: WebDAVConfig) {
   try {
-  const fileContent = await client.getFileContents(`${REMOTE_DIR}${DATA_FILE}`, { format: 'text' });
-  const filePath = await getLocalFilePath();
-  await fs.writeTextFile(filePath, fileContent as string);
+    const data = await webdavDownload(config, REMOTE_PATH);
+    const filePath = await getLocalFilePath();
+    await fs.writeTextFile(filePath, JSON.stringify(data, null, 2));
 
     console.log('Sync download successful!');
     // It's recommended to reload the app state after download.

@@ -1,34 +1,39 @@
-import { Flex, Heading } from '@chakra-ui/react';
+import { Editable, Flex, Heading, IconButton } from '@chakra-ui/react';
 import type { NodeMouseHandler } from '@xyflow/react';
-import { Panel, ReactFlow } from '@xyflow/react';
-import { useAtomValue } from 'jotai';
+import { Controls, Panel, ReactFlow } from '@xyflow/react';
 import { useState } from 'react';
+import { LuCheck, LuPencilLine, LuX } from 'react-icons/lu';
 
 import '@xyflow/react/dist/style.css';
 
-import { reactFlowObjectsAtom, type RFNode } from '@/store/reactFlowObjects';
-import { selectedTLGroupValueAtom } from '@/store/timelineGroup';
+import { useAppStore } from '@/store';
+import { reactFlowSelector, useReactFlowStore } from '@/store/reactFlowStore';
 import type { TimelineNode } from '@/types/timeline';
+import type { RFNode } from '@/utils/reactFlowObjects';
 import { DelimiterComponent } from './DelimiterComponent';
 import { EmptyTimelineGroupScreen } from './EmptyTimelineGroupScreen';
 import { EmptyTimelineScreen } from './EmptyTimelineScreen';
-import { RightSidebar } from './RightSidebar';
+import { RightSidebar } from './RightPanel';
 import { TaskNodeComponent } from './TaskNodeComponent';
 import { TimelineChat } from './TimelineChat';
+import { useShallow } from 'zustand/react/shallow';
+import { selectTimelineGroupById } from '@/store/timelineSlice';
 
 export function TimelineDisplay() {
-  const group = useAtomValue(selectedTLGroupValueAtom);
+  const groupId = useAppStore((state) => state.selectedTimelineGroupId);
+  const group = useAppStore(selectTimelineGroupById(groupId));
+  const updateTimelineGroup = useAppStore((state) => state.updateTimelineGroup);
+  const { nodes, edges, onNodesChange, onEdgesChange } = useReactFlowStore(useShallow(reactFlowSelector));
 
-  const { nodes, edges } = useAtomValue(reactFlowObjectsAtom);
-
-  const [selectedNode, setSelectedNode] = useState<RFNode<TimelineNode> | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
   const onNodeClick: NodeMouseHandler<RFNode<TimelineNode>> = (_evt, node) => {
-    setSelectedNode(node);
+    setSelectedNodeId(node.id);
+    console.log('Node clicked:', node);
   };
 
   const handleCloseSidebar = () => {
-    setSelectedNode(null);
+    setSelectedNodeId(null);
   };
 
   if (group == null) {
@@ -52,17 +57,45 @@ export function TimelineDisplay() {
           gap: 4,
         }}
       >
-        <Heading
-          size="lg"
+        <Editable.Root
+          activationMode="dblclick"
+          value={group.title}
+          onValueCommit={(details) => {
+            updateTimelineGroup(group.id, (draft) => {
+              draft.title = details.value;
+            });
+          }}
           css={{
-            p: 4,
+            px: 4,
+            py: 2,
             bg: 'white',
             rounded: 'lg',
-            shadow: 'lg',
+            boxShadow: 'md',
+            w: 'unset',
           }}
         >
-          {group.title}
-        </Heading>
+          <Editable.Preview>
+            <Heading>{group.title}</Heading>
+          </Editable.Preview>
+          <Editable.Input />
+          <Editable.Control>
+            <Editable.EditTrigger asChild>
+              <IconButton variant="ghost" size="xs">
+                <LuPencilLine />
+              </IconButton>
+            </Editable.EditTrigger>
+            <Editable.CancelTrigger asChild>
+              <IconButton variant="outline" size="xs">
+                <LuX />
+              </IconButton>
+            </Editable.CancelTrigger>
+            <Editable.SubmitTrigger asChild>
+              <IconButton variant="outline" size="xs">
+                <LuCheck />
+              </IconButton>
+            </Editable.SubmitTrigger>
+          </Editable.Control>
+        </Editable.Root>
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -70,15 +103,19 @@ export function TimelineDisplay() {
             task: TaskNodeComponent,
             delimiter: DelimiterComponent,
           }}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
           onNodeClick={onNodeClick}
           fitView
+          panOnDrag={[1, 2]}
         >
           <Panel position="bottom-center">
             <TimelineChat />
           </Panel>
+          <Controls style={{ zIndex: 10 }} position="bottom-right" />
         </ReactFlow>
       </Flex>
-      <RightSidebar node={selectedNode} onClose={handleCloseSidebar} />
+      <RightSidebar nodeId={selectedNodeId} onClose={handleCloseSidebar} />
     </Flex>
   );
 }

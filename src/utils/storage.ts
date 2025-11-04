@@ -1,78 +1,112 @@
-import { invoke } from '@tauri-apps/api/core';
-
-import type { AppData } from '@/types/app';
+import type { AppMetaData } from '@/types/app';
 import type { MemoNode } from '@/types/memo';
 import type { TimelineGroup } from '@/types/timeline';
+import { invoke } from '@tauri-apps/api/core';
+import { openDB } from 'idb';
+import type { IDBPDatabase } from 'idb';
+import superjson from 'superjson';
+import type { PersistStorage, StorageValue } from 'zustand/middleware';
 
-import { initialAppData, initialMemo, initialTimelineGroups } from './mockData';
-
-// A flag to determine if the app is running in a Tauri context.
 const isTauri = !!window.__TAURI__;
 
-interface ExtendedAppData extends AppData {
+export type PersistedAppData = AppMetaData & {
   memo: MemoNode[];
   timelineGroups: TimelineGroup[];
-}
-
-// --- Mock Storage for Browser Development (localStorage) ---
-const STORAGE_KEY = 'one-ok-todo-app-data';
-
-// Initialize localStorage with mock data if not present
-const initializeLocalStorage = () => {
-  if (!localStorage.getItem(STORAGE_KEY)) {
-    const initialData = { ...initialAppData, memo: initialMemo, timelineGroups: initialTimelineGroups };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(initialData));
-  }
 };
 
-// Initialize on module load
-initializeLocalStorage();
-
-const mockSaveData = async (data: ExtendedAppData): Promise<void> => {
-  console.log('[LocalStorage] Saving root data');
-  const jsonString = JSON.stringify(data);
-  localStorage.setItem(STORAGE_KEY, jsonString);
-};
-
-const mockLoadData = async (): Promise<ExtendedAppData> => {
-  console.log('[LocalStorage] Loading root data');
-  const jsonString = localStorage.getItem(STORAGE_KEY);
-
-  if (jsonString === null) {
-    return { ...initialAppData, memo: [], timelineGroups: [] };
-  }
-
-  try {
-    return JSON.parse(jsonString) as ExtendedAppData;
-  } catch (error) {
-    console.error('Failed to parse localStorage data, falling back to initial mock data:', error);
-    return { ...initialAppData, memo: [], timelineGroups: [] };
-  }
-};
-
-// --- Tauri (Rust) Implementation ---
-const tauriSaveData = async (data: ExtendedAppData): Promise<void> => {
-  try {
-    const jsonString = JSON.stringify(data);
-    await invoke('save_data_rust', { data: jsonString });
-  } catch (error) {
-    console.error('Failed to save root data:', error);
-  }
-};
-
-const tauriLoadData = async (): Promise<ExtendedAppData> => {
-  try {
-    const jsonString = (await invoke('load_data_rust')) as string;
-    if (!jsonString) {
-      return { ...initialAppData, memo: [], timelineGroups: [] };
+const tauriStorage: PersistStorage<PersistedAppData> = {
+  getItem: async (name) => {
+    try {
+      const data = await invoke('load_data_rust', { key: name });
+      return superjson.parse(data as string);
+    } catch (error) {
+      console.error('Failed to load data from Tauri:', error);
+      return null;
     }
-    return JSON.parse(jsonString) as ExtendedAppData;
-  } catch (error) {
-    console.error('Failed to load root data, falling back to initial mock data:', error);
-    return { ...initialAppData, memo: [], timelineGroups: [] };
-  }
+  },
+  setItem: async (name, value) => {
+    try {
+      await invoke('save_data_rust', { key: name, data: superjson.stringify(value) });
+    } catch (error) {
+      console.error('Failed to save data to Tauri:', error);
+    }
+  },
+  removeItem: async (name) => {
+    try {
+      await invoke('remove_data_rust', { key: name });
+    } catch (error) {
+      console.error('Failed to remove data from Tauri:', error);
+    }
+  },
 };
 
-// --- Exported Functions ---
-export const saveData = isTauri ? tauriSaveData : mockSaveData;
-export const loadData = isTauri ? tauriLoadData : mockLoadData;
+// IndexedDB adapter using idb
+const DB_NAME = 'one-ok-todo-db';
+const DB_VERSION = 1;
+const STORE_NAME = 'app-storage';
+
+let dbPromise: Promise<IDBPDatabase> | null = null;
+
+const getDB = () => {
+  if (!dbPromise) {
+    dbPromise = openDB(DB_NAME, DB_VERSION, {
+      upgrade(db) {
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME);
+        }
+      },
+    });
+  }
+  return dbPromise;
+};
+
+const indexedDBAdapter: PersistStorage<PersistedAppData> = {
+  getItem: async (name) => {
+    try {
+      const db = await getDB();
+      const value = await db.get(STORE_NAME, name);
+      if (value) {
+        return superjson.parse(value as string) as StorageValue<PersistedAppData>;
+      } else {
+        return {
+          version: 3,
+          state: {
+            lastModified: new Date().toISOString(),
+            memo: [],
+            timelineGroups: [],
+            syncStatus: 'synced',
+          },
+        } satisfies StorageValue<PersistedAppData>;
+      }
+    } catch (error) {
+      console.error('Failed to get data from IndexedDB:', error);
+      return {
+        version: 3,
+        state: {
+          lastModified: new Date().toISOString(),
+          memo: [],
+          timelineGroups: [],
+          syncStatus: 'synced',
+        },
+      } satisfies StorageValue<PersistedAppData>;
+    }
+  },
+  setItem: async (name, value) => {
+    try {
+      const db = await getDB();
+      await db.put(STORE_NAME, superjson.stringify(value), name);
+    } catch (error) {
+      console.error('Failed to save data to IndexedDB:', error);
+    }
+  },
+  removeItem: async (name) => {
+    try {
+      const db = await getDB();
+      await db.delete(STORE_NAME, name);
+    } catch (error) {
+      console.error('Failed to remove data from IndexedDB:', error);
+    }
+  },
+};
+
+export const appStorage = isTauri ? tauriStorage : indexedDBAdapter;

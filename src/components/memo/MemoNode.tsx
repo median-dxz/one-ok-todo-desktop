@@ -1,8 +1,6 @@
-import { deleteMemoNodeAtom, updateMemoNodeAtom } from '@/store/actions/memoActions';
-import { selectNodeTypeDialogAtom, selectedMemoNodeIdAtom } from '@/store/memoAtom';
+import { useAppStore } from '@/store';
 import type { MemoNode as MemoNodeType } from '@/types/memo';
 import { Box, Editable, Flex, HStack, Icon, IconButton, Spacer, VStack } from '@chakra-ui/react';
-import { useAtom, useSetAtom } from 'jotai';
 import { useState } from 'react';
 import { FiFileText, FiFolder, FiList, FiPlus, FiTrash2 } from 'react-icons/fi';
 
@@ -22,12 +20,15 @@ const NODE_TYPE_ICONS = {
 
 export const MemoNode = ({ node, level, isLast }: MemoNodeProps) => {
   const [isHovered, setIsHovered] = useState(false);
-  const setDialogState = useSetAtom(selectNodeTypeDialogAtom);
-  const deleteNode = useSetAtom(deleteMemoNodeAtom);
-  const updateNode = useSetAtom(updateMemoNodeAtom);
-  const [selectedNodeId, setSelectedNodeId] = useAtom(selectedMemoNodeIdAtom);
+  const {
+    selectedMemoNodeId,
+    setSelectedMemoNodeId,
+    openSelectNodeTypeDialog,
+    deleteMemoNode,
+    updateMemoNode,
+  } = useAppStore();
 
-  const isSelected = selectedNodeId === node.id;
+  const isSelected = selectedMemoNodeId === node.id;
   const { icon, color } = NODE_TYPE_ICONS[node.type];
 
   return (
@@ -42,7 +43,7 @@ export const MemoNode = ({ node, level, isLast }: MemoNodeProps) => {
         color={isSelected ? 'white' : 'gray.800'}
         borderRadius="md"
         cursor="pointer"
-        onClick={() => setSelectedNodeId(node.id)}
+        onClick={() => setSelectedMemoNodeId(node.id)}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         boxShadow="sm"
@@ -62,7 +63,7 @@ export const MemoNode = ({ node, level, isLast }: MemoNodeProps) => {
         <Icon as={icon} color={isSelected ? 'white' : color} mr={2} />
         <Editable.Root
           defaultValue={node.key}
-          onValueCommit={(d) => updateNode({ nodeId: node.id, newKey: d.value })}
+          onValueCommit={(d) => updateMemoNode(node.id, d.value)}
           fontSize="sm"
         >
           <Editable.Preview />
@@ -76,7 +77,7 @@ export const MemoNode = ({ node, level, isLast }: MemoNodeProps) => {
             variant="ghost"
             onClick={(e) => {
               e.stopPropagation();
-              setDialogState({ isOpen: true, parentId: node.id });
+              openSelectNodeTypeDialog(node.id);
             }}
           >
             <FiPlus />
@@ -87,7 +88,7 @@ export const MemoNode = ({ node, level, isLast }: MemoNodeProps) => {
             variant="ghost"
             onClick={(e) => {
               e.stopPropagation();
-              deleteNode({ nodeId: node.id });
+              deleteMemoNode(node.id);
             }}
           >
             <FiTrash2 />
