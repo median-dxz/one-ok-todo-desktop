@@ -4,8 +4,9 @@ import type { RFNode } from '@/utils/reactFlowObjects';
 import {
   Button,
   Checkbox,
+  CheckboxGroup,
   Dialog,
-  Field,
+  Fieldset,
   HStack,
   IconButton,
   Input,
@@ -14,7 +15,7 @@ import {
   Separator,
   Stack,
   VStack,
-  type UseDialogReturn,
+  type UseDialogReturn
 } from '@chakra-ui/react';
 import { produce } from 'immer';
 import { useState } from 'react';
@@ -143,49 +144,55 @@ export const EditTaskNodeDialog = ({ targetNode, control }: EditTaskNodeDialogPr
 
       <Separator />
 
-      <Field.Root>
-        <HStack justify="space-between">
-          <Field.Label>子任务</Field.Label>
-          <Button size="xs" onClick={handleAddSubtask}>
-            <LuPlus />
-            添加子任务
-          </Button>
-        </HStack>
-        {edit.subtasks && edit.subtasks.length > 0 && (
-          <VStack align="stretch" gap={2} mt={2}>
-            {edit.subtasks.map((subtask, index) => (
-              <HStack key={index} gap={2}>
-                <Checkbox.Root
-                  checked={subtask.status === 'done'}
-                  onCheckedChange={(e) => {
-                    handleUpdateSubtask(index, {
-                      status: e.checked ? 'done' : 'todo',
-                    });
-                  }}
-                  size="sm"
-                >
-                  <Checkbox.HiddenInput />
-                  <Checkbox.Control>
-                    <Checkbox.Indicator />
-                  </Checkbox.Control>
-                </Checkbox.Root>
-                <Input
-                  size="sm"
-                  flex="1"
-                  value={subtask.title}
-                  onChange={(e) => {
-                    handleUpdateSubtask(index, { title: e.target.value });
-                  }}
-                  placeholder="输入子任务标题"
-                />
-                <IconButton size="sm" variant="ghost" colorPalette="red" onClick={() => handleDeleteSubtask(index)}>
-                  <LuTrash2 />
-                </IconButton>
-              </HStack>
-            ))}
-          </VStack>
-        )}
-      </Field.Root>
+      <Fieldset.Root>
+        <Fieldset.Legend width="full">
+          <HStack justify="space-between" width="full">
+            <span>子任务</span>
+            <Button size="xs" onClick={handleAddSubtask}>
+              <LuPlus />
+              添加子任务
+            </Button>
+          </HStack>
+        </Fieldset.Legend>
+        <CheckboxGroup>
+          <Fieldset.Content>
+            {edit.subtasks && edit.subtasks.length > 0 && (
+              <VStack align="stretch" gap={2} mt={2}>
+                {edit.subtasks.map((subtask, index) => (
+                  <HStack key={index} gap={2}>
+                    <Checkbox.Root
+                      checked={subtask.status === 'done'}
+                      onCheckedChange={(e) => {
+                        handleUpdateSubtask(index, {
+                          status: e.checked ? 'done' : 'todo',
+                        });
+                      }}
+                      size="sm"
+                    >
+                      <Checkbox.HiddenInput />
+                      <Checkbox.Control>
+                        <Checkbox.Indicator />
+                      </Checkbox.Control>
+                    </Checkbox.Root>
+                    <Input
+                      size="sm"
+                      flex="1"
+                      value={subtask.title}
+                      onChange={(e) => {
+                        handleUpdateSubtask(index, { title: e.target.value });
+                      }}
+                      placeholder="输入子任务标题"
+                    />
+                    <IconButton size="sm" variant="ghost" colorPalette="red" onClick={() => handleDeleteSubtask(index)}>
+                      <LuTrash2 />
+                    </IconButton>
+                  </HStack>
+                ))}
+              </VStack>
+            )}
+          </Fieldset.Content>
+        </CheckboxGroup>
+      </Fieldset.Root>
     </TaskNodeDialogBase>
   );
 };
