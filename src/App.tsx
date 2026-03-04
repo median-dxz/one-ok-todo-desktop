@@ -28,7 +28,6 @@ import { TimelineGroupList } from '@/components/timeline/TimelineGroupList';
 import { Loading } from '@/components/ui/Loading';
 import { TabButton } from '@/components/ui/TabButton';
 import { useAppStore } from '@/store';
-import { loadMockData } from '@/utils/mockData';
 
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
 
@@ -56,23 +55,7 @@ function App() {
   const handleSync = async () => {
     setSyncStatus('syncing');
     try {
-      // 模拟同步延迟
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // IMPORTANT: Replace with your actual WebDAV credentials
-      /*
-      const webdavOptions = {
-        url: 'YOUR_WEBDAV_URL', // e.g., https://dav.box.com/dav
-        username: 'YOUR_USERNAME',
-        password: 'YOUR_PASSWORD',
-      };
-
-      await uploadToWebDAV(webdavOptions);
-      await downloadFromWebDAV(webdavOptions);
-      */
-
-      // 加载模拟数据
-      await loadMockData(useAppStore.setState);
+      await useAppStore.persist.rehydrate();
 
       setSyncStatus('success');
 

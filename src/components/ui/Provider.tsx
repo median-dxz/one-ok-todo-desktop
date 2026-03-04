@@ -3,6 +3,7 @@
 import { useAppStore } from '@/store';
 import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
 import { useEffect, type PropsWithChildren } from 'react';
+import { Toaster } from './Toaster';
 
 export function Provider({ children }: PropsWithChildren) {
   const { view: currentViewType, isAppDataLoaded, timelineGroups } = useAppStore();
@@ -22,5 +23,10 @@ export function Provider({ children }: PropsWithChildren) {
     }
   }, []);
 
-  return <ChakraProvider value={defaultSystem}>{children}</ChakraProvider>;
+  return (
+    <ChakraProvider value={defaultSystem}>
+      {children}
+      <Toaster />
+    </ChakraProvider>
+  );
 }

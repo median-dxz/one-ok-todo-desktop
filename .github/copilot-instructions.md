@@ -33,7 +33,9 @@ const group = useAppStore(selectTimelineGroupById(groupId));
 ### Persistence (src/utils/storage.ts)
 - **Tauri**: `invoke('save_data_rust')` → `Documents/OneOkTodo/data/root-data.json` (Rust in `src-tauri/src/lib.rs`).
 - **Web fallback**: IndexedDB via `idb`.
+- **Multi-source aggregation (planned)**: add an adapter aggregation layer over Tauri local file, IndexedDB, and WebDAV; load from all available sources and pick the latest non-empty dataset.
 - **Always** serialize with `superjson` to preserve `Date`, `Set`, `Map`.
+- **Schema handling rule**: use Zod recovery for recoverable shape issues (e.g. missing recoverable fields/defaultable values); if unrecoverable, throw an error and surface it in both console and UI toaster (no silent fallback).
 - `partialize` extracts only `appMetadata`, `memo`, `timelineGroups` for storage.
 
 ## UI Conventions

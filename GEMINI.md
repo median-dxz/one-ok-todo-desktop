@@ -15,6 +15,8 @@
 - **Persistence**: Hybrid strategy (`src/utils/storage.ts`).
   - Web: Fallback to IndexedDB (via `idb`).
   - Tauri: Uses `invoke('save_data_rust')` (Rust 命令位于 `src-tauri/src/lib.rs`). 
+  - 规划中需要有一层统一聚合器：同时对接本地（Tauri/Rust）、Web（IndexedDB）和 WebDAV，多源读取后按“最新且非空”选择。
+  - 数据校验策略：可恢复问题（如可推断默认值/可补齐字段）优先通过 Zod 恢复；不可恢复时必须抛错，并同时输出控制台错误与 UI Toaster，禁止静默吞错。
   - **重要坑点**: 目前 TS 调用 `invoke` 时传的 `key`, `data` 参数以及 `remove_data_rust`，与 Rust 实际在 `lib.rs` 注册的签名不匹配，改动时需注意。
   - Serialization: Use `superjson` for rich types (Date, Set, Map). 持久化通过 Zustand 的 `partialize` 处理。
 

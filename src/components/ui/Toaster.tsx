@@ -8,13 +8,33 @@ import {
   Toast,
   createToaster,
 } from "@chakra-ui/react"
+import { useEffect } from 'react'
+import { PERSISTENCE_ERROR_EVENT, type PersistenceErrorDetail } from '@/utils/persistenceError'
 
-export const toaster = createToaster({
+const toaster = createToaster({
   placement: "bottom-end",
   pauseOnPageIdle: true,
 })
 
 export const Toaster = () => {
+  useEffect(() => {
+    const listener = (event: Event) => {
+      const customEvent = event as CustomEvent<PersistenceErrorDetail>
+      toaster.create({
+        type: 'error',
+        title: customEvent.detail?.title ?? '持久化错误',
+        description: customEvent.detail?.description ?? '应用数据加载失败，请检查存储配置。',
+        closable: true,
+      })
+    }
+
+    window.addEventListener(PERSISTENCE_ERROR_EVENT, listener)
+
+    return () => {
+      window.removeEventListener(PERSISTENCE_ERROR_EVENT, listener)
+    }
+  }, [])
+
   return (
     <Portal>
       <ChakraToaster toaster={toaster} insetInline={{ mdDown: "4" }}>

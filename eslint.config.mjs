@@ -35,6 +35,7 @@ export default defineConfig([
         'error',
         {
           caughtErrors: 'none',
+          argsIgnorePattern: '^_',
         },
       ],
       '@typescript-eslint/no-unused-expressions': [
