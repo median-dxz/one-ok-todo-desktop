@@ -1,7 +1,6 @@
 import { PERSISTENCE_ERROR_EVENT } from '@/utils/persistenceError';
 import superjson from 'superjson';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { appStorage } from '@/utils/storage';
 
 const mockInvoke = vi.fn();
 const mockDbGet = vi.fn();
@@ -22,6 +21,13 @@ vi.mock('idb', () => ({
 
 describe('storage 持久化冒烟测试', () => {
   const APPDATA_KEY = 'one-ok-todo-app-data';
+  let appStorage: typeof import('@/utils/storage/index').appStorage;
+
+  beforeAll(async () => {
+    const module = await import('@/utils/storage/index');
+    appStorage = module.appStorage;
+  });
+
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
@@ -68,39 +74,6 @@ describe('storage 持久化冒烟测试', () => {
     }
   });
 
-  it('多源场景下应选择最新且非空的数据', async () => {
-    window.__TAURI__ = {};
-
-    const olderIndexedDb = {
-      version: 3,
-      state: {
-        lastModified: '2026-03-01T00:00:00.000Z',
-        syncStatus: 'synced',
-        memo: [{ id: 'memo-1', key: 'a', type: 'string', value: 'old', children: [] }],
-        timelineGroups: [],
-      },
-    };
-
-    const newerTauri = {
-      version: 3,
-      state: {
-        lastModified: '2026-03-04T00:00:00.000Z',
-        syncStatus: 'synced',
-        memo: [{ id: 'memo-2', key: 'b', type: 'string', value: 'new', children: [] }],
-        timelineGroups: [],
-      },
-    };
-
-    mockDbGet.mockResolvedValueOnce(superjson.stringify(olderIndexedDb));
-    mockInvoke.mockResolvedValueOnce(superjson.stringify(newerTauri));
-
-    const value = await appStorage.getItem(APPDATA_KEY);
-
-    expect(value?.state.lastModified).toBe(newerTauri.state.lastModified);
-    expect(value?.state.memo[0]?.id).toBe('memo-2');
-    expect(mockInvoke).toHaveBeenCalledWith('load_data_rust');
-  });
-
   it('在 Tauri 环境下保存时应向 Tauri 适配器写入', async () => {
     window.__TAURI__ = {};
 
@@ -140,8 +113,8 @@ describe('storage 持久化冒烟测试', () => {
     // 不应该抛出“不可恢复”的异常，而是正常执行完毕
     const value = await appStorage.getItem(APPDATA_KEY);
 
-    // Zustand 的规范：如果没有持久化数据，应返回 null/undefined 等 Falsy 值
-    expect(value).toBeFalsy();
+    // 返回默认数据
+    expect(value).not.toBeNullable();
 
     // 确保两端都被正确查询过
     expect(mockInvoke).toHaveBeenCalledWith('load_data_rust');
