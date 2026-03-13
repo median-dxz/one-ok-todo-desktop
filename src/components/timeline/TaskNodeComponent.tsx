@@ -3,6 +3,9 @@ import type { TaskNode } from '@/types/timeline';
 import { Box, HStack, Icon, Text, VStack } from '@chakra-ui/react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { LuCalendarClock, LuCircle, LuCircleCheckBig, LuLock, LuSkipForward, LuStar } from 'react-icons/lu';
+import { useAppStore } from '@/store';
+import { useMemo } from 'react';
+import { selectTimelineById } from '@/store/timelineSlice';
 
 interface TaskNodePropsConfig {
   icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
@@ -58,7 +61,7 @@ const taskNodeProps: Record<TaskNode['status'], Omit<TaskNodePropsConfig, 'icon'
     },
     label: 'SKIPPED',
   },
-  lock: {
+  locked: {
     color: {
       iconBg: 'gray.300',
       iconColor: 'white',
@@ -75,7 +78,7 @@ const taskNodeProps: Record<TaskNode['status'], Omit<TaskNodePropsConfig, 'icon'
 
 export function TaskNodeComponent({ data: node, selected }: NodeProps<RFNode<TaskNode>>) {
   const theme = taskNodeProps[node.status] ?? taskNodeProps.todo;
-  const timeline = node.timeline;
+  const timeline = useAppStore(useMemo(() => selectTimelineById(node.timelineId), [node.timelineId]));
 
   const IconComp = (() => {
     if (timeline?.type === 'recurrence' && node.status === 'todo') {
@@ -84,7 +87,7 @@ export function TaskNodeComponent({ data: node, selected }: NodeProps<RFNode<Tas
       return LuCircleCheckBig;
     } else if (node.status === 'skipped') {
       return LuSkipForward;
-    } else if (node.status === 'lock') {
+    } else if (node.status === 'locked') {
       return LuLock;
     } else {
       return LuCircle;
@@ -94,6 +97,9 @@ export function TaskNodeComponent({ data: node, selected }: NodeProps<RFNode<Tas
     <>
       <Handle type="target" position={Position.Left} />
       <Box
+        data-testid="task-node"
+        data-status={node.status}
+        data-milestone={node.milestone ? 'true' : 'false'}
         display="flex"
         alignItems="center"
         minW="180px"
@@ -159,6 +165,11 @@ export function TaskNodeComponent({ data: node, selected }: NodeProps<RFNode<Tas
             >
               {node.title}
             </Text>
+            {node.content.subtasks.length > 0 && (
+              <Text fontSize="10px" color="gray.500" lineHeight="1">
+                {node.content.subtasks.filter((s) => s.done).length}/{node.content.subtasks.length}
+              </Text>
+            )}
           </VStack>
         </HStack>
       </Box>

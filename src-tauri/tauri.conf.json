@@ -1,12 +1,12 @@
 {
-  "$schema": "https://schema.tauri.app/config/2",
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "one-ok-todo",
   "version": "0.1.0",
   "identifier": "xyz.median.one-ok-todo.app",
   "build": {
-    "beforeDevCommand": "bun run dev",
+    "beforeDevCommand": "pnpm run dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "bun run build",
+    "beforeBuildCommand": "pnpm run build",
     "frontendDist": "../dist"
   },
   "app": {
@@ -19,15 +19,6 @@
     ],
     "security": {
       "csp": null
-    },
-    "allowlist": {
-      "fs": {
-        "all": true,
-        "scope": ["*"]
-      },
-      "path": {
-        "all": true
-      }
     }
   },
   "bundle": {

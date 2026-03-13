@@ -30,3 +30,7 @@ playwright-report
 test-results
 
 .VSCodeCounter
+
+# For llm
+.plans
+.opencode

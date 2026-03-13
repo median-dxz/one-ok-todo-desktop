@@ -3,6 +3,9 @@ import type { DelimiterNode } from '@/types/timeline';
 import { Box, HStack, Text, VStack } from '@chakra-ui/react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { LuCalendarClock, LuCircleCheckBig, LuPlay } from 'react-icons/lu';
+import { useAppStore } from '@/store';
+import { selectTimelineById } from '@/store/timelineSlice';
+import { useMemo } from 'react';
 
 interface DelimiterProps {
   icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
@@ -43,11 +46,23 @@ const delimiterProps: Record<DelimiterNode['markerType'], Omit<DelimiterProps, '
     },
     label: 'FINISH',
   },
+  date: {
+    color: {
+      iconBg: 'purple.500',
+      iconColor: 'white',
+      textColor: 'purple.700',
+      labelColor: 'gray.600',
+      borderColor: 'purple.300',
+      selectedBorderColor: 'purple.600',
+      hoverBg: 'purple.100',
+    },
+    label: 'DATE',
+  },
 } as const;
 
 export function DelimiterComponent({ data: node, selected }: NodeProps<RFNode<DelimiterNode>>) {
   const theme = delimiterProps[node.markerType] ?? delimiterProps.start;
-  const timeline = node.timeline;
+  const timeline = useAppStore(useMemo(() => selectTimelineById(node.timelineId), [node.timelineId]));
 
   const Icon = (() => {
     if (node.markerType === 'start') {

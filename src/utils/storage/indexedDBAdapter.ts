@@ -1,8 +1,6 @@
+import type { StorageAdapter } from '@/types/storage';
 import { openDB } from 'idb';
 import superjson from 'superjson';
-import type { StorageValue } from 'zustand/middleware';
-import type { PersistedAppData } from '.';
-import type { StorageAdapter } from './types';
 
 const APP_STORAGE_KEY = 'one-ok-todo-app-data';
 const DB_NAME = 'one-ok-todo-db';
@@ -25,7 +23,7 @@ export const getIndexedDBAdapter = async (): Promise<StorageAdapter> => {
       try {
         const value = await db.get(STORE_NAME, APP_STORAGE_KEY);
         if (value) {
-          return superjson.parse(value as string) as StorageValue<PersistedAppData>;
+          return superjson.parse(value as string);
         }
         return null;
       } catch (error) {

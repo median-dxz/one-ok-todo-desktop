@@ -1,122 +1,179 @@
-export type NodeStatus = 'todo' | 'done' | 'skipped' | 'lock';
-export type TaskExecutionMode = 'scheduled' | 'quantitative';
-export type NodeType = 'task' | 'delimiter';
-export type TimelineType = 'task' | 'recurrence';
+import { nanoid } from 'nanoid';
+import { z } from 'zod';
 
-export interface ExecutionModeConfig {
-  mode: TaskExecutionMode;
-  // 定时模式配置
-  scheduledConfig?: {
-    deadline?: string; // ISO 8601 格式
-    reminder?: string; // 提醒时间
-  };
-  // 定量模式配置
-  quantitativeConfig?: {
-    target: number; // 目标数量
-    current: number; // 当前完成数量
-    timeUnit?: string; // 时间单位（如"天"、"周"、"月"）
-  };
-}
+export const NodeStatusSchema = z.enum(['todo', 'done', 'skipped', 'locked']);
+export const TaskExecutionModeSchema = z.enum(['scheduled', 'quantitative']);
+export const NodeTypeSchema = z.enum(['task', 'delimiter']);
+export const TimelineTypeSchema = z.enum(['task', 'recurrence']);
 
-// 基础节点属性
-export type BaseNode = {
-  id: string; // 节点唯一标识
-  type: NodeType; // 节点类型
+// 任务执行配置
+export const ExecutionModeConfigSchema = z.discriminatedUnion('mode', [
+  z.object({
+    mode: z.literal('scheduled'), // 执行模式：定时
 
-  // 依赖关系
-  prevs: string[]; // 前驱节点 ID 列表
-  succs: string[]; // 后继节点 ID 列表
-};
+    deadline: z.coerce.date(), // 任务截止日期
+    reminder: z.iso.datetime({ offset: true }).optional(), // 提醒时间
+  }),
+  z.object({
+    mode: z.literal('quantitative'), // 执行模式：定量
 
-// 普通任务节点
-export type TaskNode = BaseNode & {
-  type: 'task';
+    target: z.number(), // 目标数量
+    current: z.number(), // 当前完成数量
+    timeUnit: z.string().default('天'), // 时间单位（如"天"、"周"、"月"、"次"）
+  }),
+]);
 
-  title: string; // 节点标题
-  description?: string; // 节点描述
-  status: NodeStatus; // 节点状态
+// 基础节点
+export const BaseNodeSchema = z.object({
+  id: z.string().default(nanoid), // 节点唯一标识
+  type: z.string(), // 节点类型
+  timelineId: z.string(), // 所属时间线 ID
 
-  executionConfig?: ExecutionModeConfig; // 任务执行模式
-  subtasks?: SubTask[]; // 子任务列表
-  milestone?: boolean; // 里程碑，用户手动高亮的节点
-  completedDate?: string; // 完成日期
-};
+  dependedBy: z.array(z.string()).default([]), // 被依赖的节点 ID 列表 (反向引用)
+});
 
 // 子任务
-export interface SubTask {
-  title: string;
-  status: Exclude<NodeStatus, 'lock' | 'skipped'>;
-}
+export const SubtaskSchema = z.object({
+  id: z.string().default(nanoid), // 子任务唯一标识
+  title: z.string().trim().min(1),
+  done: z.boolean(),
+});
 
-export type DelimiterNode = BaseNode & {
-  type: 'delimiter';
-  markerType: 'start' | 'end';
-};
+// 普通任务节点
+export const TaskNodeSchema = z.object({
+  ...BaseNodeSchema.shape,
+  type: z.literal('task'),
 
-export type RecurrenceFrequency = 'daily' | WeeklyConfig | MonthlyConfig;
+  title: z.string().trim().min(1), // 节点标题
+  content: z.object({
+    description: z.string(), // 节点描述
+    subtasks: z.array(SubtaskSchema), // 子任务列表
+    // 其他可能的字段，如标签、优先级等
+  }),
+  status: NodeStatusSchema.default('todo'), // 节点状态
+  dependsOn: z.array(z.string()).default([]), // 依赖的节点 ID 列表 (前向引用)
 
-export interface WeeklyConfig {
-  // 选定星期（0-6，0表示周日）
-  weekdays: number[]; // 例如 [1, 3, 5] 表示周一、三、五
-  // 总时长分摊到天
-  durationPerWeek?: number;
-  // 总次数分摊到天
-  occurrencesPerWeek?: number;
-}
+  executionConfig: ExecutionModeConfigSchema.optional(), // 任务执行模式
+  milestone: z.boolean().default(false), // 里程碑，用户手动高亮的节点
+  completedDate: z.iso.datetime({ offset: true }).optional(), // 完成日期
+});
 
-export interface MonthlyConfig {
-  // 选定日期（1-31）
-  days: number[]; // 例如 [1, 15] 表示每月1号和15号
-  // 总时长分摊到天
-  durationPerMonth?: number;
-  // 总次数分摊到天
-  occurrencesPerMonth?: number;
-}
+// 分隔符节点
+export const DelimiterNodeSchema = z.object({
+  ...BaseNodeSchema.shape,
+  type: z.literal('delimiter'),
+  markerType: z.enum(['start', 'end', 'date']),
+});
 
-export type RecurrenceTaskTemplate = Omit<TaskNode, 'milestone' | 'executionConfig'>;
+export const TimelineNodeSchema = z.discriminatedUnion('type', [TaskNodeSchema, DelimiterNodeSchema]);
 
-export interface RecurrencePattern {
-  // 任务模板序列（支持多任务轮换）
-  // 长度为一时为单任务
-  taskTemplates: RecurrenceTaskTemplate[];
-  // 当前轮换位置
-  currentIndex?: number; // 默认 0
-}
+export const WeeklyConfigSchema = z
+  .object({
+    // 选定星期（0-6，0表示周日）
+    weekdays: z.array(z.number().min(0).max(6)), // 例如 [1, 3, 5] 表示周一、三、五
+    // 总时长 分摊到天
+    durationPerWeek: z.number().optional(),
+    // 总次数 分摊到天
+    occurrencesPerWeek: z.number().optional(),
+  })
+  .refine((data) => data.durationPerWeek || data.occurrencesPerWeek, {
+    message: '至少需要提供 durationPerWeek 或 occurrencesPerWeek 之一',
+  });
 
-export type RecurrenceInstance = Omit<TaskNode, 'milestone'>;
+export const MonthlyConfigSchema = z
+  .object({
+    // 选定日期（1-31）
+    days: z.array(z.number().min(1).max(31)), // 例如 [1, 15] 表示每月1号和15号
+    // 总时长 分摊到天
+    durationPerMonth: z.number().optional(),
+    // 总次数 分摊到天
+    occurrencesPerMonth: z.number().optional(),
+  })
+  .refine((data) => data.durationPerMonth || data.occurrencesPerMonth, {
+    message: '至少需要提供 durationPerMonth 或 occurrencesPerMonth 之一',
+  });
 
-export interface BaseTimeline {
-  id: string; // 时间线唯一标识
-  title: string; // 时间线标题
-  type: TimelineType; // 时间线类型
-}
+export const RecurrenceFrequencySchema = z.union([z.literal('daily'), WeeklyConfigSchema, MonthlyConfigSchema]);
 
-export type TimelineNode = TaskNode | DelimiterNode;
+export const RecurrenceTaskTemplateSchema = TaskNodeSchema.pick({
+  content: true,
+  title: true,
+});
 
-export interface TaskTimeline extends BaseTimeline {
-  type: 'task';
+export const RecurrenceTaskInstanceSchema = TaskNodeSchema.omit({
+  milestone: true,
+  dependedBy: true,
+  dependsOn: true,
+});
 
-  nodes: TimelineNode[];
-}
+export const BaseTimelineSchema = z.object({
+  id: z.string().default(nanoid), // 时间线唯一标识
+  groupId: z.string(), // 所属分组 ID
+  title: z.string().trim().min(1), // 时间线标题
+});
 
-export interface RecurrenceTimeline extends BaseTimeline {
-  type: 'recurrence';
+export const TaskTimelineSchema = z.object({
+  ...BaseTimelineSchema.shape,
+  type: z.literal('task'),
+  nodes: z.array(TimelineNodeSchema).default([]), // 时间线包含的节点列表
+});
 
-  completedTasks: RecurrenceInstance[];
-
-  frequency: RecurrenceFrequency;
-
+export const RecurrenceTimelineSchema = z.object({
+  ...BaseTimelineSchema.shape,
+  type: z.literal('recurrence'),
+  completedTasks: z.array(RecurrenceTaskInstanceSchema).default([]),
+  // 任务轮换频率
+  frequency: RecurrenceFrequencySchema,
   // 任务轮换模式
-  pattern: RecurrencePattern;
+  pattern: z
+    .object({
+      // 任务模板序列（支持多任务轮换）
+      // 长度为一时为单任务
+      taskTemplates: z.array(RecurrenceTaskTemplateSchema),
+      // 当前轮换位置
+      currentIndex: z.number().optional(),
+    })
+    .refine(
+      ({ taskTemplates, currentIndex }) => {
+        if (currentIndex === undefined && taskTemplates.length === 0) return true;
+        return currentIndex !== undefined && currentIndex >= 0 && currentIndex < taskTemplates.length;
+      },
+      {
+        message: 'currentIndex 必须在 taskTemplates 数组范围内',
+      },
+    ),
+  startDate: z.coerce.date(),
+  endDate: z.coerce.date().optional(),
+});
 
-  startDate: string;
-  endDate?: string;
-}
+export const TimelineSchema = z.discriminatedUnion('type', [TaskTimelineSchema, RecurrenceTimelineSchema]);
 
-export type Timeline = TaskTimeline | RecurrenceTimeline;
+export const TimelineGroupSchema = z.object({
+  id: z.string().default(nanoid), // 分组唯一标识
+  title: z.string().trim().min(1), // 分组标题
+  timelines: z.array(TimelineSchema).default([]), // 有序 Timeline 列表
+});
 
-export interface TimelineGroup {
-  id: string; // 分组唯一标识
-  title: string; // 分组标题
-  timelines: Timeline[];
-}
+export type NodeStatus = z.infer<typeof NodeStatusSchema>;
+export type TaskExecutionMode = z.infer<typeof TaskExecutionModeSchema>;
+export type NodeType = z.infer<typeof NodeTypeSchema>;
+export type TimelineType = z.infer<typeof TimelineTypeSchema>;
+
+export type ExecutionModeConfig = z.infer<typeof ExecutionModeConfigSchema>;
+export type Subtask = z.infer<typeof SubtaskSchema>;
+
+export type BaseNode = z.infer<typeof BaseNodeSchema>;
+export type TaskNode = z.infer<typeof TaskNodeSchema>;
+export type DelimiterNode = z.infer<typeof DelimiterNodeSchema>;
+export type TimelineNode = z.infer<typeof TimelineNodeSchema>;
+
+export type RecurrenceFrequency = z.infer<typeof RecurrenceFrequencySchema>;
+export type RecurrenceTaskTemplate = z.infer<typeof RecurrenceTaskTemplateSchema>;
+export type RecurrenceTaskInstance = z.infer<typeof RecurrenceTaskInstanceSchema>;
+
+export type BaseTimeline = z.infer<typeof BaseTimelineSchema>;
+export type TaskTimeline = z.infer<typeof TaskTimelineSchema>;
+
+export type RecurrenceTimeline = z.infer<typeof RecurrenceTimelineSchema>;
+export type Timeline = z.infer<typeof TimelineSchema>;
+export type TimelineGroup = z.infer<typeof TimelineGroupSchema>;

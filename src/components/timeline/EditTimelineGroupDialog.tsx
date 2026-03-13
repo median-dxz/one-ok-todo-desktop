@@ -1,42 +1,49 @@
 import { useAppStore } from '@/store';
-import { createTimelineGroup, DIRTY_TIMELINE_GROUP } from '@/store/timelineSlice';
+import { selectTimelineGroupById } from '@/store/timelineSlice';
+import { TimelineGroupFlatSchema, TimelineGroupDraftSchema, type TimelineGroupDraft } from '@/types/flat';
 import { Button, Dialog, Field, Input, Portal, type UseDialogReturn } from '@chakra-ui/react';
-import { produce } from 'immer';
 import { useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 interface EditTimelineGroupDialogProps {
-  control: UseDialogReturn;
+  disclosure: UseDialogReturn;
+  groupId: string | null;
 }
 
-export const EditTimelineGroupDialog = ({ control }: EditTimelineGroupDialogProps) => {
-  const { addTimelineGroup, updateTimelineGroup, editingTimelineGroup, setEditingTimelineGroup } = useAppStore(
+export const EditTimelineGroupDialog = ({ disclosure, groupId }: EditTimelineGroupDialogProps) => {
+  const { addTimelineGroup, updateTimelineGroup } = useAppStore(
     useShallow((state) => ({
       addTimelineGroup: state.addTimelineGroup,
       updateTimelineGroup: state.updateTimelineGroup,
-      setEditingTimelineGroup: state.setEditingTimelineGroup,
-      editingTimelineGroup: state.editingTimelineGroup,
     })),
   );
 
-  const isEditMode = Boolean(editingTimelineGroup);
-  const [group, setGroup] = useState(editingTimelineGroup ?? createTimelineGroup());
-  const title = group.title;
+  const targetGroup = useAppStore(selectTimelineGroupById(groupId ?? undefined));
+  const isEditMode = Boolean(targetGroup);
+  const [groupDraft, setGroupDraft] = useState<TimelineGroupDraft>(
+    () =>
+      structuredClone(targetGroup) ?? {
+        title: '',
+        timelineOrder: [],
+      },
+  );
+
+  const { title } = groupDraft;
 
   const handleSubmit = () => {
     if (title.trim()) {
       if (isEditMode) {
-        updateTimelineGroup(group.id, () => group);
+        const payload = TimelineGroupFlatSchema.parse(groupDraft);
+        updateTimelineGroup(payload.id, () => payload);
       } else {
-        addTimelineGroup(group);
-        setEditingTimelineGroup(DIRTY_TIMELINE_GROUP);
+        const draft = TimelineGroupDraftSchema.parse(groupDraft);
+        addTimelineGroup(draft);
       }
-      control.setOpen(false);
     }
   };
 
   return (
-    <Dialog.RootProvider value={control}>
+    <Dialog.RootProvider value={disclosure}>
       <Portal>
         <Dialog.Backdrop />
         <Dialog.Positioner>
@@ -50,13 +57,7 @@ export const EditTimelineGroupDialog = ({ control }: EditTimelineGroupDialogProp
                 <Input
                   placeholder="输入组名称"
                   value={title}
-                  onChange={(e) =>
-                    setGroup(
-                      produce((draft) => {
-                        draft.title = e.target.value;
-                      }),
-                    )
-                  }
+                  onChange={(e) => setGroupDraft((prev) => ({ ...prev, title: e.target.value }))}
                 />
               </Field.Root>
             </Dialog.Body>

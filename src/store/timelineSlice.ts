@@ -1,27 +1,64 @@
-import type { RecurrenceTimeline, TaskNode, TaskTimeline, Timeline, TimelineGroup } from '@/types/timeline';
+import type {
+  FlatTimelineData,
+  TaskNodeDraft,
+  TimelineDraft,
+  TimelineFlat,
+  TimelineGroupDraft,
+  TimelineGroupFlat,
+} from '@/types/flat';
+import { TaskNodeFlatSchema, TimelineFlatSchema, TimelineGroupFlatSchema } from '@/types/flat';
+import type {
+  DelimiterNode,
+  NodeStatus,
+  RecurrenceTaskInstance,
+  RecurrenceTimeline,
+  TaskNode,
+  TaskTimeline,
+  Timeline,
+  TimelineGroup,
+  TimelineNode,
+} from '@/types/timeline';
 import { type Producer } from 'immer';
 import { nanoid } from 'nanoid';
 import type { StateCreator } from 'zustand';
 import type { StoreState } from './index';
 
-export interface TimelineSlice {
-  timelineGroups: TimelineGroup[];
+export interface TimelineSlice extends FlatTimelineData {
+  importFlatData: (data: {
+    groups: Record<string, TimelineGroupFlat>;
+    timelines: Record<string, TimelineFlat>;
+    nodes: Record<string, TimelineNode>;
+    groupOrder: string[];
+  }) => void;
+
   selectedTimelineGroupId: string | null;
-  editingTimelineGroup: TimelineGroup | null;
-
-  setTimelineGroups: (recipe: Producer<TimelineGroup[]>) => void;
-
   setSelectedTimelineGroupId: (groupId: string | null) => void;
-  setEditingTimelineGroup: (group: TimelineGroup | null) => void;
 
-  addTimelineGroup: (group: TimelineGroup) => void;
+  addTimelineGroup: (group: TimelineGroupDraft) => void;
   deleteTimelineGroup: (groupId: string) => void;
   reorderTimelineGroups: (newGroupIds: string[]) => void;
-  updateTimelineGroup: (groupId: string, recipe: Producer<TimelineGroup>) => void;
+  updateTimelineGroup: (groupId: string, recipe: Producer<TimelineGroupFlat>) => void;
 
-  addTimeline: (timeline: Timeline) => void;
-  updateTimeline: (timelineId: string, recipe: Producer<Timeline>) => void;
+  addTimeline: (groupId: string, timeline: TimelineDraft) => void;
+  updateTimeline: (timelineId: string, recipe: Producer<TimelineFlat>) => void;
   deleteTimeline: (timelineId: string) => void;
+
+  updateNode: (nodeId: string, recipe: Producer<TimelineNode>) => void;
+
+  addTaskNode: (
+    timelineId: string,
+    insertData: {
+      sourceId: string;
+      draft: TaskNodeDraft;
+      insertMode: 'before' | 'after';
+    },
+  ) => void;
+
+  updateTaskNodeStatus: (
+    timelineId: string,
+    node: TaskNode | RecurrenceTaskInstance,
+    status: Exclude<NodeStatus, 'locked'>,
+  ) => void;
 }
 
 export const createTimelineSlice: StateCreator<
@@ -30,139 +67,285 @@ export const createTimelineSlice: StateCreator<
   [],
   TimelineSlice
 > = (set) => ({
-  timelineGroups: [],
+  groups: {},
+  timelines: {},
+  nodes: {},
+  groupOrder: [],
   selectedTimelineGroupId: null,
-  editingTimelineGroup: null,
-
-  setTimelineGroups: (recipe) =>
-    set((state) => {
-      const r = recipe(state.timelineGroups);
-      r && (state.timelineGroups = r);
-
-      if (state.timelineGroups.length > 0 && state.selectedTimelineGroupId === null) {
-        state.selectedTimelineGroupId = state.timelineGroups[0].id;
-      }
-    }),
+  editingTimelineGroupId: null,
 
   setSelectedTimelineGroupId: (groupId) => set({ selectedTimelineGroupId: groupId }),
 
-  setEditingTimelineGroup: (group) => set({ editingTimelineGroup: group }),
-
-  addTimelineGroup: (group) =>
+  importFlatData: (data) =>
     set((state) => {
-      state.timelineGroups.push(group);
+      state.groups = data.groups;
+      state.timelines = data.timelines;
+      state.nodes = data.nodes;
+      state.groupOrder = data.groupOrder;
+    }),
+
+  addTimelineGroup: (draft) =>
+    set((state) => {
+      const result = TimelineGroupFlatSchema.safeParse(draft);
+      if (!result.success) {
+        throw new Error('Invalid timeline group draft', { cause: result.error });
+      }
+      const group = result.data;
+      state.groups[group.id] = group;
+      state.groupOrder.push(group.id);
       state.selectedTimelineGroupId = group.id;
     }),
 
   deleteTimelineGroup: (groupId) =>
     set((state) => {
-      state.timelineGroups = state.timelineGroups.filter((group) => group.id !== groupId);
+      const group = state.groups[groupId];
+      if (!group) return;
+
+      // 级联删除关联 timelines 和 nodes
+      for (const timelineId of group.timelineOrder) {
+        const timeline = state.timelines[timelineId];
+        if (timeline?.type === 'task') {
+          // 删除属于该 timeline 的所有 nodes
+          for (const nodeId of timeline.nodeOrder) {
+            delete state.nodes[nodeId];
+          }
+        }
+        delete state.timelines[timelineId];
+      }
+
+      delete state.groups[groupId];
+      state.groupOrder = state.groupOrder.filter((id) => id !== groupId);
+
       if (state.selectedTimelineGroupId === groupId) {
-        state.selectedTimelineGroupId = state.timelineGroups[0]?.id ?? null;
+        state.selectedTimelineGroupId = state.groupOrder[0] ?? null;
       }
     }),
 
   reorderTimelineGroups: (newGroupIds) =>
     set((state) => {
-      const groupMap = new Map(state.timelineGroups.map((group) => [group.id, group]));
-      state.timelineGroups = newGroupIds.map((id) => groupMap.get(id)!);
+      state.groupOrder = newGroupIds;
     }),
 
   updateTimelineGroup: (groupId, recipe) =>
     set((state) => {
-      const group = state.timelineGroups.find((g) => g.id === groupId);
+      const group = state.groups[groupId];
       if (group) {
         const r = recipe(group);
         r && Object.assign(group, r);
       }
     }),
 
-  addTimeline: (timeline) =>
+  addTimeline: (groupId, draft) =>
     set((state) => {
-      const group = state.timelineGroups.find((tl) => tl.id === state.selectedTimelineGroupId);
-      if (group) {
-        group.timelines.push(timeline);
+      if (!state.groups[groupId]) return;
+
+      const draftWithGroupId = { ...draft, groupId };
+      const result = TimelineFlatSchema.safeParse(draftWithGroupId);
+
+      if (!result.success) {
+        throw new Error('Invalid timeline draft', { cause: result.error });
+      }
+
+      const timeline = result.data;
+      state.timelines[timeline.id] = timeline;
+      state.groups[groupId].timelineOrder.push(timeline.id);
+
+      // 自动为 task timeline 创建起始 delimiter 节点
+      if (timeline.type === 'task') {
+        const startNodeId = nanoid();
+        state.nodes[startNodeId] = {
+          id: startNodeId,
+          type: 'delimiter',
+          markerType: 'start',
+          timelineId: timeline.id,
+          dependedBy: [],
+        } satisfies DelimiterNode;
+        timeline.nodeOrder = [startNodeId];
       }
     }),
 
   updateTimeline: (timelineId, recipe) =>
     set((state) => {
-      const group = state.timelineGroups.find((tl) => tl.id === state.selectedTimelineGroupId);
-      const timeline = group?.timelines.find((tl) => tl.id === timelineId);
+      const timeline = state.timelines[timelineId];
       if (timeline) {
         const r = recipe(timeline);
         r && Object.assign(timeline, r);
       }
     }),
 
+  updateNode: (nodeId, recipe) =>
+    set((state) => {
+      const existing = state.nodes[nodeId];
+      if (existing) {
+        const r = recipe(existing);
+        r && Object.assign(existing, r);
+      }
+    }),
+
   deleteTimeline: (timelineId) =>
     set((state) => {
-      const group = state.timelineGroups.find((tl) => tl.id === state.selectedTimelineGroupId);
+      const timeline = state.timelines[timelineId];
+      if (!timeline) return;
+
+      // 级联删除属于该 timeline 的 nodes
+      if (timeline.type === 'task') {
+        for (const nodeId of timeline.nodeOrder) {
+          delete state.nodes[nodeId];
+        }
+      }
+
+      // 从所属 group 的 timelineOrder 中移除
+      const group = state.groups[timeline.groupId];
       if (group) {
-        group.timelines = group.timelines.filter((tl) => tl.id !== timelineId);
+        group.timelineOrder = group.timelineOrder.filter((id) => id !== timelineId);
+      }
+
+      delete state.timelines[timelineId];
+    }),
+
+  addTaskNode: (timelineId, { draft, insertMode, sourceId }) =>
+    set((state) => {
+      const timeline = state.timelines[timelineId];
+      if (!timeline || timeline.type !== 'task') {
+        throw new Error('Timeline not found or is not a task timeline');
+      }
+
+      const source = state.nodes[sourceId];
+      if (source?.timelineId !== timelineId) {
+        throw new Error('Source node does not belong to the specified timeline');
+      }
+
+      const result = TaskNodeFlatSchema.safeParse({
+        ...draft,
+        timelineId,
+        type: 'task',
+      });
+
+      if (!result.success) {
+        throw new Error('Invalid task node draft', { cause: result.error });
+      }
+
+      const taskToAdd = result.data;
+      const sourceIndex = timeline.nodeOrder.indexOf(sourceId);
+
+      if (sourceIndex === -1) {
+        throw new Error('Source node not found in timeline order');
+      }
+
+      if (insertMode === 'after') {
+        // 在源节点之后插入
+        timeline.nodeOrder.splice(sourceIndex + 1, 0, taskToAdd.id);
+        state.nodes[taskToAdd.id] = taskToAdd;
+      } else if (insertMode === 'before' && source.type !== 'delimiter') {
+        // 在源节点之前插入
+        timeline.nodeOrder.splice(sourceIndex, 0, taskToAdd.id);
+        state.nodes[taskToAdd.id] = taskToAdd;
+      }
+    }),
+
+  updateTaskNodeStatus: (timelineId, targetNode, status) =>
+    set((state) => {
+      const timeline = state.timelines[timelineId];
+      if (!timeline) return;
+
+      if (timeline.type === 'task') {
+        const node = state.nodes[targetNode.id];
+        if (node?.type === 'task') {
+          node.status = status;
+        }
+      } else if (
+        timeline.type === 'recurrence' &&
+        targetNode.type === 'task' &&
+        (status === 'done' || status === 'skipped')
+      ) {
+        timeline.completedTasks.push({ ...targetNode, status } as RecurrenceTaskInstance);
       }
     }),
 });
 
-export const createTimelineGroup = (title: string = ''): TimelineGroup => ({
-  id: nanoid(),
-  title,
-  timelines: [],
-});
-
-export const DIRTY_TIMELINE_GROUP = createTimelineGroup();
-
-export const newRecurrenceTimeline = (title: string): RecurrenceTimeline => {
+export const createRecurrenceTimeline = (title: string, groupId: string = ''): RecurrenceTimeline => {
   return {
     id: nanoid(),
     title,
     type: 'recurrence',
+    groupId,
     completedTasks: [],
     frequency: 'daily',
     pattern: {
       taskTemplates: [
         {
-          id: nanoid(),
-          type: 'task',
           title: 'Recurrence Task',
-          status: 'todo',
-          prevs: [],
-          succs: [],
+          content: {
+            subtasks: [],
+            description: '',
+          },
         },
       ],
     },
-    startDate: new Date().toISOString(),
+    startDate: new Date(),
   };
 };
 
-export const createTaskTimeline = (title: string): TaskTimeline => {
-  const tl: TaskTimeline = {
-    id: nanoid(),
-    title,
-    type: 'task',
-    nodes: [],
-  };
-  tl.nodes.push({
-    id: nanoid(),
-    type: 'delimiter',
-    markerType: 'start',
-    prevs: [],
-    succs: [],
-  });
-  return tl;
-};
-
-export const createTaskNode = (data: Omit<TaskNode, 'id' | 'prevs' | 'succs'>): TaskNode => {
-  return {
-    ...data,
-    id: nanoid(),
-    prevs: [],
-    succs: [],
-  };
-};
+// ─── Selectors ───
 
 export const selectTimelineGroupById =
-  (groupId: string | null) =>
+  (groupId?: string) =>
+  (state: StoreState): TimelineGroupFlat | null => {
+    if (!groupId) return null;
+    return state.groups[groupId] ?? null;
+  };
+
+export const selectTimelinesForGroup =
+  (groupId?: string) =>
+  (state: StoreState): TimelineFlat[] => {
+    if (!groupId) return [];
+    const group = state.groups[groupId];
+
+    return group?.timelineOrder.map((id) => state.timelines[id]).filter(Boolean) ?? [];
+  };
+
+export const selectTimelineById =
+  (timelineId?: string) =>
+  (state: StoreState): TimelineFlat | null => {
+    if (!timelineId) return null;
+    return state.timelines[timelineId] ?? null;
+  };
+
+export const selectNodesForTimeline =
+  (timelineId?: string) =>
+  (state: StoreState): TimelineNode[] => {
+    if (!timelineId) return [];
+    const timeline = state.timelines[timelineId];
+    if (timeline?.type === 'task') {
+      return timeline.nodeOrder.map((id) => state.nodes[id]).filter(Boolean);
+    }
+    return [];
+  };
+
+/**
+ * 重组嵌套结构，供 React Flow bridge 和需要完整结构的场景使用
+ * TODO: 临时桥接方案，后续在 React Flow 中直接使用展平数据
+ */
+export const selectNestedTimelineGroup =
+  (groupId: string) =>
   (state: StoreState): TimelineGroup | null => {
-    return state.timelineGroups.find((g) => g.id === groupId) || null;
+    const group = state.groups[groupId];
+    if (!group) return null;
+
+    const timelines: Timeline[] = group.timelineOrder.map((tlId) => {
+      const timeline = state.timelines[tlId];
+
+      if (timeline.type === 'task') {
+        const timelineNodes = timeline.nodeOrder.map((id) => state.nodes[id]).filter(Boolean);
+        return { ...timeline, nodes: timelineNodes } as TaskTimeline;
+      } else {
+        return timeline;
+      }
+    });
+
+    return {
+      id: group.id,
+      title: group.title,
+      timelines,
+    };
   };

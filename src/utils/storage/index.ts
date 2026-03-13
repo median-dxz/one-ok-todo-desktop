@@ -1,39 +1,28 @@
-import { MemoNodeSchema, TimelineGroupSchema } from '@/types/schemas';
+import { debounce } from '@/utils/index';
 import { reportPersistenceError } from '@/utils/persistenceError';
+import { core } from '@tauri-apps/api';
 import { z } from 'zod';
 import type { PersistStorage, StorageValue } from 'zustand/middleware';
 
 import { getIndexedDBAdapter } from './indexedDBAdapter';
 import { tauriAdapter } from './tauriAdapter';
-import type { AdapterCandidate, PersistedAppData, StorageAdapter } from './types';
+import type { AdapterCandidate, PersistedAppData, StorageAdapter } from '../../types/storage';
 import { getWebDAVAdapter } from './webdavAdapter';
+import { PersistedStorageValueSchema } from '@/types/storage';
 
-export type { PersistedAppData } from './types';
+export type { PersistedAppData } from '../../types/storage';
 
 const emptyStorageValue: StorageValue<PersistedAppData> = {
   version: 3,
   state: {
-    lastModified: new Date().toISOString(),
+    metadata: {
+      lastModified: new Date().toISOString(),
+      syncStatus: 'synced',
+    },
     memo: [],
     timelineGroups: [],
-    syncStatus: 'synced',
   },
 };
-
-const PersistedStateSchema = z.object({
-  lastModified: z
-    .string()
-    .min(1)
-    .catch(() => new Date().toISOString()),
-  syncStatus: z.enum(['synced', 'pending', 'error']).optional().catch('error'),
-  memo: z.preprocess((value) => (value == null ? [] : value), z.array(MemoNodeSchema)),
-  timelineGroups: z.preprocess((value) => (value == null ? [] : value), z.array(TimelineGroupSchema)),
-});
-
-const PersistedStorageValueSchema = z.object({
-  version: z.number().catch(3),
-  state: PersistedStateSchema,
-});
 
 function formatZodError(error: z.ZodError): string {
   return error.issues.map((issue) => `${issue.path.join('.') || 'root'}: ${issue.message}`).join('; ');
@@ -41,7 +30,7 @@ function formatZodError(error: z.ZodError): string {
 
 function validatePersistedValue(
   sourceName: string,
-  raw: StorageValue<PersistedAppData>,
+  raw: object,
 ): StorageValue<PersistedAppData> {
   const result = PersistedStorageValueSchema.safeParse(raw);
 
@@ -49,7 +38,7 @@ function validatePersistedValue(
     throw new Error(`[${sourceName}] schema validation failed: ${formatZodError(result.error)}`);
   }
 
-  return result.data satisfies StorageValue<PersistedAppData>;
+  return result.data;
 }
 
 function isNonEmptyPersistedValue(value: StorageValue<PersistedAppData>): boolean {
@@ -57,7 +46,7 @@ function isNonEmptyPersistedValue(value: StorageValue<PersistedAppData>): boolea
 }
 
 function getLastModifiedTimestamp(value: StorageValue<PersistedAppData>): number {
-  const timestamp = new Date(value.state.lastModified).getTime();
+  const timestamp = new Date(value.state.metadata.lastModified).getTime();
   return Number.isNaN(timestamp) ? 0 : timestamp;
 }
 
@@ -76,8 +65,7 @@ function pickBestCandidate(candidates: AdapterCandidate[]): AdapterCandidate | n
 async function getActiveAdapters(): Promise<StorageAdapter[]> {
   const adapters: Array<StorageAdapter | null> = [];
 
-  const isTauri = !!window.__TAURI__;
-  if (isTauri) {
+  if (core.isTauri()) {
     adapters.push(tauriAdapter);
   } else {
     adapters.push(await getIndexedDBAdapter());
@@ -106,8 +94,7 @@ const aggregatedStorage = {
           candidates.push({ adapter: adapter.name, value: validated });
         } catch (error) {
           hasUnrecoverableError = true;
-          reportPersistenceError(`数据源 ${adapter.name} 校验失败，已跳过。`);
-          console.error(`[Storage] ${adapter.name} candidate rejected:`, error);
+          reportPersistenceError(`数据源 ${adapter.name} 校验失败，已跳过。`, error);
         }
       }),
     );
@@ -126,7 +113,7 @@ const aggregatedStorage = {
     return emptyStorageValue;
   },
 
-  setItem: async (_name, value) => {
+  setItem: debounce(async (_name: string, value: StorageValue<PersistedAppData>) => {
     const adapters = await getActiveAdapters();
     const results = await Promise.allSettled(adapters.map((adapter) => adapter.setItem(value)));
     results.forEach((result, index) => {
@@ -135,7 +122,7 @@ const aggregatedStorage = {
         reportPersistenceError(`写入 ${adapter.name} 失败。`, result.reason);
       }
     });
-  },
+  }, 300),
 
   removeItem: async (_name) => {
     const adapters = await getActiveAdapters();

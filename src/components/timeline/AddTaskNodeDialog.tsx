@@ -1,89 +1,64 @@
+import { Field, RadioGroup, Stack, type UseDialogReturn } from '@chakra-ui/react';
+import { useMemo, useState } from 'react';
+
+import { UniversalErrorDialog } from '@/components/ui/UniversalErrorDialog';
 import { useAppStore } from '@/store';
-import { useAddTaskNode } from '@/store/reactFlowStore';
-import { selectTimelineGroupById } from '@/store/timelineSlice';
-import type { BaseNode, TaskNode, TaskTimeline } from '@/types/timeline';
-import { Button, Dialog, Field, Portal, RadioGroup, Stack, type UseDialogReturn } from '@chakra-ui/react';
-import { useState } from 'react';
+import { selectTimelineById, type TimelineSlice } from '@/store/timelineSlice';
+import { TaskNodeDraftSchema, type TaskNodeDraft } from '@/types/flat';
+import type { BaseNode } from '@/types/timeline';
+
 import { TaskNodeDialogBase } from './TaskNodeDialogBase';
 
 interface AddTaskNodeDialogProps {
   sourceNode: BaseNode;
-  control: UseDialogReturn;
+  disclosure: UseDialogReturn;
 }
 
-const defaultNode: Omit<TaskNode, 'id' | 'prevs' | 'succs'> = {
-  title: '',
-  status: 'todo',
+const createDefaultDraft = (): TaskNodeDraft => ({
   type: 'task',
-};
-
-const createNewTaskNode = (): Omit<TaskNode, 'id' | 'prevs' | 'succs'> => ({
-  ...defaultNode,
+  title: '',
+  content: {
+    description: '',
+    subtasks: [],
+  },
 });
 
-const NotTaskTimelineError = ({ control }: { control: UseDialogReturn }) => (
-  <Dialog.RootProvider value={control}>
-    <Portal>
-      <Dialog.Backdrop />
-      <Dialog.Positioner>
-        <Dialog.Content>
-          <Dialog.Header>
-            <Dialog.Title>错误</Dialog.Title>
-          </Dialog.Header>
-          <Dialog.Body>只能在任务时间线中添加任务节点。</Dialog.Body>
-          <Dialog.Footer>
-            <Dialog.ActionTrigger asChild>
-              <Button variant="outline">关闭</Button>
-            </Dialog.ActionTrigger>
-          </Dialog.Footer>
-        </Dialog.Content>
-      </Dialog.Positioner>
-    </Portal>
-  </Dialog.RootProvider>
-);
+type InsertMode = Parameters<TimelineSlice['addTaskNode']>[1]['insertMode'];
 
-export const AddTaskNodeDialog = ({ sourceNode, control }: AddTaskNodeDialogProps) => {
-  const selectedTimelineGroupId = useAppStore((state) => state.selectedTimelineGroupId);
-  const selectedTimelineGroup = useAppStore(selectTimelineGroupById(selectedTimelineGroupId));
-  const addTaskNode = useAddTaskNode();
-  const [newNode, setNewNode] = useState<Omit<TaskNode, 'id' | 'prevs' | 'succs'>>(createNewTaskNode());
-  const [insertMode, setInsertMode] = useState<'succ' | 'prev'>('succ');
-
-  const timeline = selectedTimelineGroup?.timelines.find((tl) =>
-    (tl as TaskTimeline).nodes?.some((n) => n.id === sourceNode.id),
-  );
+export const AddTaskNodeDialog = ({ sourceNode, disclosure }: AddTaskNodeDialogProps) => {
+  const timeline = useAppStore(useMemo(() => selectTimelineById(sourceNode.timelineId), [sourceNode.timelineId]));
+  const addTaskNode = useAppStore((s) => s.addTaskNode);
+  const [nodeDraft, setNodeDraft] = useState(createDefaultDraft);
+  const [insertMode, setInsertMode] = useState<InsertMode>('after');
 
   if (timeline?.type !== 'task') {
-    return <NotTaskTimelineError control={control} />;
+    return <UniversalErrorDialog message="只能在任务时间线中添加任务节点" disclosure={disclosure} />;
   }
 
   const handleSubmit = () => {
-    addTaskNode(timeline.id, sourceNode.id, newNode, insertMode);
-    setNewNode(createNewTaskNode());
+    const payload = TaskNodeDraftSchema.parse(nodeDraft); // TODO handle error here
+    addTaskNode(timeline.id, { draft: payload, sourceId: sourceNode.id, insertMode });
   };
 
   return (
     <TaskNodeDialogBase
-      control={control}
-      node={newNode as TaskNode}
-      setNode={setNewNode as React.Dispatch<React.SetStateAction<TaskNode>>}
+      disclosure={disclosure}
+      nodeDraft={nodeDraft}
+      setNodeDraft={setNodeDraft}
       title="创建任务"
       saveButtonText="创建"
       onSubmit={handleSubmit}
     >
       <Field.Root>
         <Field.Label>插入位置</Field.Label>
-        <RadioGroup.Root
-          value={insertMode}
-          onValueChange={(details) => setInsertMode(details.value as 'succ' | 'prev')}
-        >
+        <RadioGroup.Root value={insertMode} onValueChange={(details) => setInsertMode(details.value as InsertMode)}>
           <Stack direction="row" gap={4}>
-            <RadioGroup.Item value="succ">
+            <RadioGroup.Item value={'after' satisfies InsertMode}>
               <RadioGroup.ItemHiddenInput />
               <RadioGroup.ItemIndicator />
               <RadioGroup.ItemText>之后</RadioGroup.ItemText>
             </RadioGroup.Item>
-            <RadioGroup.Item value="prev">
+            <RadioGroup.Item value={'before' satisfies InsertMode}>
               <RadioGroup.ItemHiddenInput />
               <RadioGroup.ItemIndicator />
               <RadioGroup.ItemText>之前</RadioGroup.ItemText>

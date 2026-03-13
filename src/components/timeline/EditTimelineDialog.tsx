@@ -1,6 +1,13 @@
-import { useAddTimeline, useUpdateTimeline } from '@/store/reactFlowStore';
-import { newRecurrenceTimeline as createRecurrenceTimeline, createTaskTimeline } from '@/store/timelineSlice';
-import type { RecurrenceTaskTemplate, RecurrenceTimeline, Timeline, TimelineType } from '@/types/timeline';
+import { useAppStore } from '@/store';
+import { createRecurrenceTimeline } from '@/store/timelineSlice';
+import {
+  TimelineDraftSchema,
+  TimelineFlatSchema,
+  type RecurrenceTimelineDraft,
+  type TimelineDraft,
+  type TimelineFlat,
+} from '@/types/flat';
+import type { RecurrenceFrequency, TimelineType } from '@/types/timeline';
 import {
   Box,
   Button,
@@ -20,13 +27,15 @@ import {
   type UseDialogReturn,
 } from '@chakra-ui/react';
 import { produce } from 'immer';
+import dayjs from 'dayjs';
+import { nanoid } from 'nanoid';
 import type { Dispatch, SetStateAction } from 'react';
 import { useState } from 'react';
-import { FaPlus, FaTrash } from 'react-icons/fa';
+import { LuPlus, LuTrash2 } from 'react-icons/lu';
 
 interface EditTimelineFieldProps {
-  edit: Timeline;
-  setEdit: Dispatch<SetStateAction<Timeline>>;
+  edit: TimelineDraft;
+  setEdit: Dispatch<SetStateAction<TimelineDraft>>;
 }
 
 const frequencyCollection = createListCollection({
@@ -40,14 +49,14 @@ const frequencyCollection = createListCollection({
 type FrequencyType = 'daily' | 'weekly' | 'monthly';
 
 // 辅助函数：从 RecurrenceFrequency 获取频率类型
-const getFrequencyType = (frequency: RecurrenceTimeline['frequency']): FrequencyType => {
+const getFrequencyType = (frequency: RecurrenceFrequency): FrequencyType => {
   if (frequency === 'daily') return 'daily';
   if ('weekdays' in frequency) return 'weekly';
   return 'monthly';
 };
 
 // 辅助函数：根据频率类型创建 RecurrenceFrequency
-const createFrequency = (type: FrequencyType): RecurrenceTimeline['frequency'] => {
+const createFrequency = (type: FrequencyType): RecurrenceFrequency => {
   switch (type) {
     case 'daily':
       return 'daily';
@@ -62,10 +71,10 @@ const EditTaskTemplates = ({
   edit,
   setEdit,
 }: {
-  edit: RecurrenceTimeline;
-  setEdit: Dispatch<SetStateAction<Timeline>>;
+  edit: RecurrenceTimelineDraft;
+  setEdit: Dispatch<SetStateAction<TimelineDraft>>;
 }) => {
-  const updateRecurrence = (updater: (draft: RecurrenceTimeline) => void) => {
+  const updateRecurrence = (updater: (draft: RecurrenceTimelineDraft) => void) => {
     setEdit(
       produce((draft) => {
         if (draft.type === 'recurrence') {
@@ -75,22 +84,24 @@ const EditTaskTemplates = ({
     );
   };
 
-  const updateTaskTemplates = (index: number, updater: (draft: RecurrenceTaskTemplate) => void) => {
+  type RecurrenceTaskTemplate = RecurrenceTimelineDraft['pattern']['taskTemplates'][number];
+
+  const updateTaskTemplates = (index: number, updater: (template: RecurrenceTaskTemplate) => void) => {
     updateRecurrence((draft) => {
-      updater(draft.pattern.taskTemplates[index]);
+      const template = draft.pattern.taskTemplates.at(index);
+      if (!template) return;
+      updater(template);
     });
   };
 
   const handleAddTemplate = () => {
     updateRecurrence((draft) => {
       draft.pattern.taskTemplates.push({
-        id: crypto.randomUUID(),
-        type: 'task',
         title: '新任务模板',
-        status: 'todo',
-        prevs: [],
-        succs: [],
-        subtasks: [],
+        content: {
+          description: '',
+          subtasks: [],
+        },
       });
     });
   };
@@ -101,35 +112,23 @@ const EditTaskTemplates = ({
     });
   };
 
-  const handleTemplateChange = <TField extends keyof RecurrenceTaskTemplate>(
-    index: number,
-    field: TField,
-    value: RecurrenceTaskTemplate[TField],
-  ) => {
-    updateRecurrence((draft) => {
-      draft.pattern.taskTemplates[index][field] = value;
-    });
-  };
-
   const handleAddSubtask = (templateIndex: number) => {
     updateTaskTemplates(templateIndex, (template) => {
-      if (!template.subtasks) {
-        template.subtasks = [];
-      }
-      template.subtasks.push({ title: '新子任务', status: 'todo' });
+      template.content.subtasks.push({ title: '新子任务', done: false, id: nanoid() });
     });
   };
 
   const handleRemoveSubtask = (templateIndex: number, subtaskIndex: number) => {
     updateTaskTemplates(templateIndex, (template) => {
-      template.subtasks?.splice(subtaskIndex, 1);
+      template.content.subtasks.splice(subtaskIndex, 1);
     });
   };
 
   const handleSubtaskChange = (templateIndex: number, subtaskIndex: number, value: string) => {
     updateTaskTemplates(templateIndex, (template) => {
-      if (template.subtasks) {
-        template.subtasks![subtaskIndex].title = value;
+      const subtask = template.content.subtasks.at(subtaskIndex);
+      if (subtask) {
+        subtask.title = value; 
       }
     });
   };
@@ -148,24 +147,35 @@ const EditTaskTemplates = ({
                 variant="ghost"
                 onClick={() => handleRemoveTemplate(index)}
               >
-                <FaTrash />
+                <LuTrash2 />
               </IconButton>
             </HStack>
             <Field.Root>
               <Field.Label>标题</Field.Label>
-              <Input value={template.title} onChange={(e) => handleTemplateChange(index, 'title', e.target.value)} />
+              <Input
+                value={template.title}
+                onChange={(e) =>
+                  updateTaskTemplates(index, (t) => {
+                    t.title = e.target.value;
+                  })
+                }
+              />
             </Field.Root>
             <Field.Root>
               <Field.Label>描述</Field.Label>
               <Textarea
-                value={template.description ?? ''}
-                onChange={(e) => handleTemplateChange(index, 'description', e.target.value)}
+                value={template.content.description}
+                onChange={(e) =>
+                  updateTaskTemplates(index, (t) => {
+                    t.content.description = e.target.value;
+                  })
+                }
               />
             </Field.Root>
             <VStack gap={2} align="stretch">
               <Text>子任务</Text>
-              {template.subtasks?.map((subtask, subIndex) => (
-                <HStack key={subIndex}>
+              {template.content.subtasks.map((subtask, subIndex) => (
+                <HStack key={subtask.id}>
                   <Input value={subtask.title} onChange={(e) => handleSubtaskChange(index, subIndex, e.target.value)} />
                   <IconButton
                     aria-label="Remove subtask"
@@ -173,12 +183,12 @@ const EditTaskTemplates = ({
                     variant="ghost"
                     onClick={() => handleRemoveSubtask(index, subIndex)}
                   >
-                    <FaTrash />
+                    <LuTrash2 />
                   </IconButton>
                 </HStack>
               ))}
               <Button size="sm" variant="outline" onClick={() => handleAddSubtask(index)}>
-                <FaPlus />
+                <LuPlus />
                 添加子任务
               </Button>
             </VStack>
@@ -186,7 +196,7 @@ const EditTaskTemplates = ({
         </Box>
       ))}
       <Button onClick={handleAddTemplate}>
-        <FaPlus />
+        <LuPlus />
         添加模板
       </Button>
     </VStack>
@@ -197,7 +207,7 @@ const EditTimelineField = ({ edit, setEdit }: EditTimelineFieldProps) => {
   // 更新时间线类型
   const handleTypeChange = (type: TimelineType) => {
     if (type === edit.type) return;
-    setEdit(type === 'task' ? createTaskTimeline(edit.title) : createRecurrenceTimeline(edit.title));
+    setEdit(type === 'task' ? { title: edit.title, type } : createRecurrenceTimeline(edit.title));
   };
 
   // 更新通用属性
@@ -210,7 +220,7 @@ const EditTimelineField = ({ edit, setEdit }: EditTimelineFieldProps) => {
   };
 
   // 更新循环时间线属性
-  const updateRecurrence = (updater: (draft: RecurrenceTimeline) => void) => {
+  const updateRecurrence = (updater: (draft: RecurrenceTimelineDraft) => void) => {
     setEdit(
       produce((draft) => {
         if (draft.type === 'recurrence') {
@@ -254,10 +264,10 @@ const EditTimelineField = ({ edit, setEdit }: EditTimelineFieldProps) => {
             <Field.Label>开始日期</Field.Label>
             <Input
               type="date"
-              value={edit.startDate.split('T')[0]}
+              value={dayjs(edit.startDate).format('YYYY-MM-DD')}
               onChange={(e) =>
                 updateRecurrence((draft) => {
-                  draft.startDate = new Date(e.target.value).toISOString();
+                  draft.startDate = dayjs(e.target.value).toDate();
                 })
               }
             />
@@ -303,25 +313,19 @@ const EditTimelineField = ({ edit, setEdit }: EditTimelineFieldProps) => {
 };
 
 interface EditTimelineDialogProps {
-  timeline?: Timeline | null;
-  control: UseDialogReturn;
+  timeline?: TimelineFlat | null;
+  disclosure: UseDialogReturn;
 }
 
-export const EditTimelineDialog = ({ timeline, control }: EditTimelineDialogProps) => {
+export const EditTimelineDialog = ({ timeline, disclosure }: EditTimelineDialogProps) => {
   const isEditMode = Boolean(timeline);
 
   return (
-    <Dialog.RootProvider value={control}>
+    <Dialog.RootProvider value={disclosure}>
       <Portal>
         <Dialog.Backdrop />
         <Dialog.Positioner>
-          <Dialog.Content>
-            <EditTimelineDialogContent
-              timeline={timeline}
-              isEditMode={isEditMode}
-              onClose={() => control.setOpen(false)}
-            />
-          </Dialog.Content>
+          <EditTimelineDialogContent timeline={timeline} isEditMode={isEditMode} />
         </Dialog.Positioner>
       </Portal>
     </Dialog.RootProvider>
@@ -329,28 +333,38 @@ export const EditTimelineDialog = ({ timeline, control }: EditTimelineDialogProp
 };
 
 interface EditTimelineDialogContentProps {
-  timeline?: Timeline | null;
+  timeline?: TimelineFlat | null;
   isEditMode: boolean;
-  onClose: () => void;
 }
 
-const EditTimelineDialogContent = ({ timeline, isEditMode, onClose }: EditTimelineDialogContentProps) => {
-  const updateTimeline = useUpdateTimeline();
-  const addTimeline = useAddTimeline();
-  const [edit, setEdit] = useState(timeline ?? createTaskTimeline(''));
+const EditTimelineDialogContent = ({ timeline, isEditMode }: EditTimelineDialogContentProps) => {
+  const updateTimeline = useAppStore((s) => s.updateTimeline);
+  const addTimeline = useAppStore((s) => s.addTimeline);
+  const selectedGroupId = useAppStore((s) => s.selectedTimelineGroupId);
+
+  const [edit, setEdit] = useState<TimelineDraft>(
+    () =>
+      structuredClone(timeline) ?? {
+        title: '',
+        type: 'task',
+      },
+  );
 
   const handleSubmit = () => {
-    if (!edit.title.trim()) return;
-    if (isEditMode && timeline) {
-      updateTimeline(timeline.id, () => edit);
+    if (!edit.title.trim()) return; // todo: form validation
+
+    if (isEditMode) {
+      const payload = TimelineFlatSchema.parse(edit);
+      updateTimeline(payload.id, () => payload);
     } else {
-      addTimeline(edit);
+      if (!selectedGroupId) return; // todo: error handling
+      const draft = TimelineDraftSchema.parse(edit);
+      addTimeline(selectedGroupId, draft);
     }
-    onClose();
   };
 
   return (
-    <>
+    <Dialog.Content>
       <Dialog.Header>
         <Dialog.Title>{isEditMode ? '编辑时间线' : '创建时间线'}</Dialog.Title>
       </Dialog.Header>
@@ -367,6 +381,6 @@ const EditTimelineDialogContent = ({ timeline, isEditMode, onClose }: EditTimeli
           </Button>
         </Dialog.ActionTrigger>
       </Dialog.Footer>
-    </>
+    </Dialog.Content>
   );
 };

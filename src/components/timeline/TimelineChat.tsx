@@ -1,17 +1,18 @@
 import { Button, HStack, Input } from '@chakra-ui/react';
 import { useState } from 'react';
 import { LuPlus } from 'react-icons/lu';
-import { createTaskTimeline } from '@/store/timelineSlice';
-import { useAddTimeline } from '@/store/reactFlowStore';
+import { useAppStore } from '@/store';
 
 export function TimelineChat() {
   const [chatMsg, setChatMsg] = useState('');
-  const addTimeline = useAddTimeline();
+  const addTimeline = useAppStore((s) => s.addTimeline);
+  const selectedGroupId = useAppStore((s) => s.selectedTimelineGroupId);
   const [focusInput, setFocusInput] = useState(false);
 
   const onAddTimeline = () => {
-    if (chatMsg.trim() === '') return;
-    addTimeline(createTaskTimeline(chatMsg));
+    if (chatMsg.trim() === '') return; // TODO: show tip
+    if (selectedGroupId === null) return; // TODO: show tip
+    addTimeline(selectedGroupId, { title: chatMsg, type: 'task' });
     setChatMsg('');
   };
 

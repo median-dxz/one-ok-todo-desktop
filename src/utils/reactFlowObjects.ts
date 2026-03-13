@@ -1,18 +1,20 @@
 import type {
   BaseNode,
-  RecurrenceInstance,
+  RecurrenceTaskInstance,
   RecurrenceTimeline,
+  TaskNode,
   TaskTimeline,
   Timeline,
+  TimelineGroup,
   TimelineNode,
   NodeType as TimelineNodeType,
 } from '@/types/timeline';
+
 import type { Edge, Node } from '@xyflow/react';
-import type { TimelineGroup } from '@/types/timeline';
+import { produce } from 'immer';
 import { nanoid } from 'nanoid';
 
-type ExtendedTLNode<T extends BaseNode> = T & { timeline: Timeline };
-export type RFNode<T extends BaseNode = TimelineNode> = Node<ExtendedTLNode<T>, TimelineNodeType | string>;
+export type RFNode<T extends BaseNode = TimelineNode> = Node<T, TimelineNodeType | string>;
 
 const NODE_GAP = { x: 300, y: 100 };
 const edgeConfig: Partial<Edge> = {
@@ -31,26 +33,28 @@ export const getReactFlowObjects = (group: TimelineGroup | null) => {
   const renderTaskTimeline = (timeline: Timeline) => {
     const taskTimeline = timeline as TaskTimeline;
     nodes.push(
-      ...taskTimeline.nodes.map((node): RFNode => {
+      ...taskTimeline.nodes.map((node, index): RFNode => {
         const rfNode: RFNode = {
           id: node.id,
           type: node.type,
           draggable: false,
           position: { x: 0, y: 0 },
-          data: { ...node, timeline },
+          data: { ...node },
         };
+
+        if (index > 0) {
+          const prevNode = taskTimeline.nodes[index - 1];
+          edges.push({
+            id: `e-${prevNode.id}-${node.id}`,
+            source: prevNode.id,
+            target: node.id,
+            ...edgeConfig,
+          });
+        }
 
         switch (node.type) {
           case 'task':
           case 'delimiter':
-            node.prevs.forEach((prevId) => {
-              edges.push({
-                id: `e-${prevId}-${node.id}`,
-                source: prevId,
-                target: node.id,
-                ...edgeConfig,
-              });
-            });
             return rfNode;
           default:
             rfNode.type = 'unknown';
@@ -74,9 +78,8 @@ export const getReactFlowObjects = (group: TimelineGroup | null) => {
         id: `${recurrenceTimeline.id}-start`,
         type: 'delimiter',
         markerType: 'start',
-        prevs: [],
-        succs: [],
-        timeline,
+        timelineId: timeline.id,
+        dependedBy: [],
       },
     };
     allNodes.push(startNode);
@@ -93,20 +96,14 @@ export const getReactFlowObjects = (group: TimelineGroup | null) => {
         type: 'task',
         draggable: false,
         position: { x: 0, y: 0 },
-        data: {
-          id: currentNodeId,
-          title: completedTask.title,
-          type: 'task',
-          status: completedTask.status,
-          prevs: [prevNode.data.id],
-          succs: [],
-          completedDate: completedTask.completedDate,
-          timeline,
-        },
+        data: produce((draft) => {
+          draft.dependedBy = [];
+          draft.dependsOn = [];
+          draft.milestone = false;
+        })(completedTask as TaskNode),
       };
 
       allNodes.push(currentNode);
-      prevNode.data.succs.push(currentNode.id);
 
       // 添加边
       edges.push({
@@ -132,24 +129,20 @@ export const getReactFlowObjects = (group: TimelineGroup | null) => {
         const taskIndex = (currentPatternIndex + lastCompletedIndex + 1 + i) % taskTemplates.length;
         const taskTemplate = taskTemplates[taskIndex];
 
-        const futureNodeId = `${taskTemplate.id}-${nanoid()}`;
+        const futureNodeId = `${taskTemplate.title}-${nanoid()}`;
         const futureNode: RFNode = {
           id: futureRFNodeId,
           type: 'task',
           draggable: false,
           position: { x: 0, y: 0 },
-          data: {
-            ...taskTemplate,
-            id: futureNodeId,
-            status: i === 0 ? 'todo' : 'lock',
-            prevs: [prevNode.data.id],
-            succs: [],
-            timeline,
-          } satisfies ExtendedTLNode<RecurrenceInstance>,
+          data: produce((draft) => {
+            draft.id = futureNodeId;
+            draft.status = i === 0 ? 'todo' : 'locked';
+            draft.timelineId = timeline.id;
+          })(taskTemplate as RecurrenceTaskInstance),
         };
 
         allNodes.push(futureNode);
-        prevNode.data.succs.push(futureNodeId);
 
         // 添加边
         edges.push({
@@ -175,12 +168,10 @@ export const getReactFlowObjects = (group: TimelineGroup | null) => {
           id: endNodeId,
           type: 'delimiter',
           markerType: 'end',
-          prevs: [prevNode.id],
-          succs: [],
-          timeline,
+          timelineId: timeline.id,
+          dependedBy: [],
         },
       });
-      prevNode.data.succs.push(endNodeId);
 
       // 添加边
       edges.push({
@@ -215,29 +206,23 @@ export const getReactFlowObjects = (group: TimelineGroup | null) => {
 };
 
 const calcNodesPositions = (nodes: RFNode[]) => {
-  const startNodes = nodes.filter(({ data: node }) => node.type === 'delimiter' && node.markerType === 'start');
   let startY = 0;
 
-  const traversed = new Set<string>();
+  const timelineGroups = new Map<string, RFNode[]>();
+  for (const node of nodes) {
+    const timelineId = node.data.timelineId;
+    if (!timelineGroups.has(timelineId)) {
+      timelineGroups.set(timelineId, []);
+    }
+    timelineGroups.get(timelineId)!.push(node);
+  }
 
-  const traverse = (node: RFNode, pos: { x: number; y: number }) => {
-    if (traversed.has(node.id)) return;
-    traversed.add(node.id);
-
-    // 计算节点位置
-    node.position = { ...pos };
-    startY = Math.max(startY, pos.y + NODE_GAP.y);
-
-    // 递归遍历子节点
-    node.data.succs.forEach((child, index) => {
-      const childNode = nodes.find((n) => n.data.id === child);
-      if (childNode && childNode.data.timeline.id === node.data.timeline.id) {
-        traverse(childNode, { x: pos.x + NODE_GAP.x, y: pos.y + index * NODE_GAP.y });
-      }
-    });
-  };
-
-  startNodes.forEach((startNode) => {
-    traverse(startNode, { x: 0, y: startY });
-  });
+  for (const [, timelineNodes] of timelineGroups) {
+    let x = 0;
+    for (const node of timelineNodes) {
+      node.position = { x, y: startY };
+      x += NODE_GAP.x;
+    }
+    startY += NODE_GAP.y;
+  }
 };

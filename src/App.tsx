@@ -9,7 +9,6 @@ import {
   Separator,
   Spacer,
   Text,
-  useDialog,
   VStack,
   type PresenceProps,
 } from '@chakra-ui/react';
@@ -27,7 +26,9 @@ import { TimelineDisplay } from '@/components/timeline/TimelineDisplay';
 import { TimelineGroupList } from '@/components/timeline/TimelineGroupList';
 import { Loading } from '@/components/ui/Loading';
 import { TabButton } from '@/components/ui/TabButton';
+import { useSessionDialog } from '@/hooks/useSessionDialog';
 import { useAppStore } from '@/store';
+import { loadMockData } from '@/utils/mockData';
 
 type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
 
@@ -39,18 +40,17 @@ const syncStatusColors = {
 };
 
 function App() {
-  const { currentViewType, isAppDataLoaded, editingTimelineGroup, setEditingTimelineGroup } = useAppStore(
+  const { currentViewType, isAppDataLoaded } = useAppStore(
     useShallow((state) => ({
       currentViewType: state.view,
       isAppDataLoaded: state.isAppDataLoaded,
-      editingTimelineGroup: state.editingTimelineGroup,
-      setEditingTimelineGroup: state.setEditingTimelineGroup,
     })),
   );
 
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
 
-  const editTimelineGroupDialog = useDialog();
+  const [editingTimelineGroupId, setEditingTimelineGroupId] = useState<string | null>(null);
+  const editTimelineGroupControl = useSessionDialog();
 
   const handleSync = async () => {
     setSyncStatus('syncing');
@@ -70,9 +70,13 @@ function App() {
     }
   };
 
-  const handleTimelineGroupEdit = useCallback(() => {
-    editTimelineGroupDialog.setOpen(true);
-  }, [editTimelineGroupDialog]);
+  const handleTimelineGroupEdit = useCallback(
+    (groupId: string) => {
+      setEditingTimelineGroupId(groupId);
+      editTimelineGroupControl.openDialog();
+    },
+    [editTimelineGroupControl],
+  );
 
   let view: ReactElement = <></>;
   const presenceStyle: PresenceProps = {
@@ -151,14 +155,17 @@ function App() {
                 <Button
                   variant="outline"
                   onClick={() => {
-                    setEditingTimelineGroup(null);
-                    editTimelineGroupDialog.setOpen(true);
+                    editTimelineGroupControl.openDialog();
                   }}
                 >
                   <LuPlus />
                   新建
                 </Button>
-                <EditTimelineGroupDialog key={editingTimelineGroup?.id} control={editTimelineGroupDialog} />
+                <EditTimelineGroupDialog
+                  key={editTimelineGroupControl.session}
+                  groupId={editingTimelineGroupId}
+                  disclosure={editTimelineGroupControl.dialog}
+                />
               </Presence>
 
               <Presence present={currentViewType === 'memo'} {...presenceStyle}>
@@ -171,6 +178,15 @@ function App() {
               <Button size="sm" variant="ghost" onClick={handleSync} loading={syncStatus === 'syncing'}>
                 <FiRefreshCw />
                 Sync
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                colorPalette="orange"
+                onClick={() => loadMockData(useAppStore.setState)}
+                title="仅用于测试：加载 Mock 数据"
+              >
+                Mock
               </Button>
               <Spacer />
               <Badge colorPalette={syncStatusColors[syncStatus]}>{syncStatus}</Badge>

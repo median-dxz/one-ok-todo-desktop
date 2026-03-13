@@ -42,7 +42,7 @@ export default defineConfig(async () => ({
   // Vitest 配置
   test: {
     globals: true,
-    environment: 'jsdom',
+    environment: 'happy-dom',
     setupFiles: './tests/ui/setup.ts',
     include: ['tests/ui/**/*.{test,spec}.{ts,tsx}'],
     typecheck: {

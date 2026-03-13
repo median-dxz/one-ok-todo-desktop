@@ -8,7 +8,7 @@ description: Use when adding Tauri invoke calls, writing Rust #[tauri::command],
 ## Tech Stack
 - **Framework**: Tauri v2.
 - **Language**: Rust 2021.
-- **Bridge**: `invoke` from `@tauri-apps/api/core`.
+- **Bridge**: `invoke` from `@tauri-apps/api`.
 
 ## Backend Logic (`src-tauri/`)
 - **Commands**: Defined in `src-tauri/src/lib.rs` with `#[tauri::command]`.
@@ -19,8 +19,8 @@ description: Use when adding Tauri invoke calls, writing Rust #[tauri::command],
 - Use `invoke` to call Rust commands.
 - Example:
   ```typescript
-  import { invoke } from '@tauri-apps/api/core';
-  await invoke('save_data_rust', { data: serializedData });
+  import { core } from '@tauri-apps/api';
+  await core.invoke('save_data_rust', { data: serializedData });
   ```
 
 ### Current gotcha (important)

@@ -2,30 +2,27 @@ import { Flex, IconButton, Menu, Portal, Text, type SystemStyleObject } from '@c
 import { FiEdit, FiList, FiMoreVertical, FiTrash2 } from 'react-icons/fi';
 
 import { useAppStore } from '@/store';
-import { type MouseEventHandler } from 'react';
+import { useMemo, type MouseEventHandler } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { selectTimelineGroupById } from '@/store/timelineSlice';
 
-interface TimelineListItemProps {
+interface TimelineGroupListItemProps {
   slotId: string; // Swapy slot ID
   itemId: string; // Swapy item ID
   groupId: string;
-  onEdit: () => void;
+  onEdit: (groupId: string) => void;
 }
 
-export function TimelineGroupListItem({ groupId, onEdit, slotId, itemId }: TimelineListItemProps) {
-  const { currentTLGroupId, setSelectedTimelineGroup, deleteTimelineGroup, setView, setEditingTimelineGroup } =
-    useAppStore(
-      useShallow((state) => ({
-        timelineGroups: state.timelineGroups,
-        currentTLGroupId: state.selectedTimelineGroupId,
-        setSelectedTimelineGroup: state.setSelectedTimelineGroupId,
-        deleteTimelineGroup: state.deleteTimelineGroup,
-        setView: state.setView,
-        setEditingTimelineGroup: state.setEditingTimelineGroup,
-      })),
-    );
-  const group = useAppStore(selectTimelineGroupById(groupId))!;
+export function TimelineGroupListItem({ groupId, onEdit, slotId, itemId }: TimelineGroupListItemProps) {
+  const { currentTLGroupId, setSelectedTimelineGroup, deleteTimelineGroup, setView } = useAppStore(
+    useShallow((state) => ({
+      currentTLGroupId: state.selectedTimelineGroupId,
+      setSelectedTimelineGroup: state.setSelectedTimelineGroupId,
+      deleteTimelineGroup: state.deleteTimelineGroup,
+      setView: state.setView,
+    })),
+  );
+  const group = useAppStore(useMemo(() => selectTimelineGroupById(groupId), [groupId]));
   const selected = currentTLGroupId === groupId;
 
   const handleSelect: MouseEventHandler = (e) => {
@@ -59,6 +56,11 @@ export function TimelineGroupListItem({ groupId, onEdit, slotId, itemId }: Timel
     },
   };
 
+  if (!group) {
+    console.error(`TimelineGroup with id ${groupId} not found`);
+    return null;
+  }
+
   return (
     <Flex key={slotId} data-swapy-slot={slotId} minHeight="40px">
       <Flex key={itemId} data-swapy-item={itemId} onClick={handleSelect} css={itemStyles}>
@@ -86,13 +88,7 @@ export function TimelineGroupListItem({ groupId, onEdit, slotId, itemId }: Timel
           <Portal>
             <Menu.Positioner>
               <Menu.Content>
-                <Menu.Item
-                  value="edit"
-                  onClick={() => {
-                    setEditingTimelineGroup(group);
-                    onEdit();
-                  }}
-                >
+                <Menu.Item value="edit" onClick={() => onEdit(groupId)}>
                   <FiEdit />
                   编辑
                 </Menu.Item>

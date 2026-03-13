@@ -1,11 +1,10 @@
-import { Box, Button, Center, Heading, useDialog, VStack } from '@chakra-ui/react';
-import { LuPlus, LuFolderOpen } from 'react-icons/lu';
+import { useSessionDialog } from '@/hooks/useSessionDialog';
+import { Box, Button, Center, Heading, VStack } from '@chakra-ui/react';
+import { LuFolderOpen, LuPlus } from 'react-icons/lu';
 import { EditTimelineGroupDialog } from './EditTimelineGroupDialog';
-import { useAppStore } from '@/store';
 
 export const EmptyTimelineGroupScreen = () => {
-  const newTimelineGroupDialog = useDialog();
-  const setEditingTimelineGroup = useAppStore(state => state.setEditingTimelineGroup);
+  const newTimelineGroupControl = useSessionDialog();
 
   return (
     <Center h="100%">
@@ -20,14 +19,13 @@ export const EmptyTimelineGroupScreen = () => {
           variant="solid"
           size="sm"
           onClick={() => {
-            setEditingTimelineGroup(null);
-            newTimelineGroupDialog.setOpen(true);
+            newTimelineGroupControl.openDialog();
           }}
         >
           <LuPlus />
           新建
         </Button>
-        <EditTimelineGroupDialog control={newTimelineGroupDialog} />
+        <EditTimelineGroupDialog groupId={null} disclosure={newTimelineGroupControl.dialog} />
       </VStack>
     </Center>
   );

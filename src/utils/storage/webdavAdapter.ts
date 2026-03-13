@@ -1,6 +1,5 @@
+import type { StorageAdapter } from '@/types/storage';
 import superjson from 'superjson';
-import type { StorageValue } from 'zustand/middleware';
-import type { PersistedAppData, StorageAdapter } from './types';
 
 interface WebDAVConfig {
   url: string;
@@ -63,7 +62,7 @@ class WebDAVClient {
    * @param remotePath 服务器上的远程路径 (e.g., '/backups/data.json')
    * @returns 下载的 JSON 数据
    */
-  async download<T>(remotePath: string): Promise<T> {
+  async download<T = unknown>(remotePath: string): Promise<T> {
     const fullUrl = this.getFullUrl(remotePath);
     const headers = this.getHeaders();
 
@@ -170,7 +169,7 @@ export const getWebDAVAdapter = (): StorageAdapter | null => {
 
     async getItem() {
       try {
-        return await client.download<StorageValue<PersistedAppData>>(config.remotePath);
+        return await client.download(config.remotePath);
       } catch (error) {
         const message = error instanceof Error ? error.message : '';
         if (message.includes('not found')) {

@@ -4,14 +4,15 @@ import { createSwapy, utils } from 'swapy';
 
 import { useAppStore } from '@/store';
 import { TimelineGroupListItem } from './TimelineGroupListItem';
+import { useShallow } from 'zustand/shallow';
 
 interface TimelineGroupListProps {
-  onEdit: () => void;
+  onEdit: (groupId: string) => void;
 }
 
 export function TimelineGroupList({ onEdit }: TimelineGroupListProps) {
   const reorderTimelineGroups = useAppStore((state) => state.reorderTimelineGroups);
-  const timelineGroups = useAppStore((state) => state.timelineGroups);
+  const timelineGroups = useAppStore(useShallow((state) => state.groupOrder.map((id) => state.groups[id])));
 
   const swapyRef = useRef<ReturnType<typeof createSwapy> | null>(null);
   const swapyContainerRef = useRef<HTMLDivElement>(null);

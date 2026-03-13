@@ -1,97 +1,54 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useStore } from '@/store';
-import type { MemoNode } from '@/types/memo';
+import { useAppStore } from '@/store';
 
 describe('memoSlice Store测试', () => {
   beforeEach(() => {
-    // 重置memo状态
-    useStore.setState({
+    useAppStore.setState({
       memo: [],
-      selectedMemoNode: null,
-      editingMemoNode: null,
-      memoNodeType: null,
+      selectedMemoNodeId: null,
+      selectNodeTypeDialog: { isOpen: false, parentId: null },
     });
   });
 
   describe('基本memo操作', () => {
     it('应该能够添加字符串类型的根节点', () => {
-      const node: MemoNode = {
-        id: 'node-1',
-        key: 'testKey',
-        type: 'string',
-        value: 'testValue',
-        children: [],
-      };
+      useAppStore.getState().addMemoNode(null, 'string');
 
-      useStore.getState().addMemoNode(node, null);
-
-      const { memo } = useStore.getState();
+      const { memo } = useAppStore.getState();
       expect(memo).toHaveLength(1);
-      expect(memo[0].key).toBe('testKey');
-      expect(memo[0].value).toBe('testValue');
+      expect(memo[0].key).toBe('new node');
+      expect(memo[0].value).toBe('');
       expect(memo[0].type).toBe('string');
     });
 
     it('应该能够添加数字类型的节点', () => {
-      const node: MemoNode = {
-        id: 'node-1',
-        key: 'count',
-        type: 'number',
-        value: 42,
-        children: [],
-      };
+      useAppStore.getState().addMemoNode(null, 'number');
 
-      useStore.getState().addMemoNode(node, null);
-
-      const { memo } = useStore.getState();
+      const { memo } = useAppStore.getState();
       expect(memo[0].type).toBe('number');
-      expect(memo[0].value).toBe(42);
+      expect(memo[0].value).toBe(0);
     });
 
     it('应该能够添加布尔类型的节点', () => {
-      const node: MemoNode = {
-        id: 'node-1',
-        key: 'enabled',
-        type: 'boolean',
-        value: true,
-        children: [],
-      };
+      useAppStore.getState().addMemoNode(null, 'boolean');
 
-      useStore.getState().addMemoNode(node, null);
-
-      const { memo } = useStore.getState();
+      const { memo } = useAppStore.getState();
       expect(memo[0].type).toBe('boolean');
-      expect(memo[0].value).toBe(true);
+      expect(memo[0].value).toBe(false);
     });
 
     it('应该能够添加对象类型的节点', () => {
-      const node: MemoNode = {
-        id: 'node-1',
-        key: 'config',
-        type: 'object',
-        value: '',
-        children: [],
-      };
+      useAppStore.getState().addMemoNode(null, 'object');
 
-      useStore.getState().addMemoNode(node, null);
-
-      const { memo } = useStore.getState();
+      const { memo } = useAppStore.getState();
       expect(memo[0].type).toBe('object');
       expect(memo[0].children).toEqual([]);
     });
 
     it('应该能够添加数组类型的节点', () => {
-      const node: MemoNode = {
-        id: 'node-1',
-        key: 'items',
-        type: 'array',
-        value: '',
-        children: [],
-      };
+      useAppStore.getState().addMemoNode(null, 'array');
 
-      useStore.getState().addMemoNode(node, null);
-
-      const { memo } = useStore.getState();
+      const { memo } = useAppStore.getState();
       expect(memo[0].type).toBe('array');
       expect(memo[0].children).toEqual([]);
     });
@@ -99,226 +56,114 @@ describe('memoSlice Store测试', () => {
 
   describe('节点层级操作', () => {
     it('应该能够添加子节点到对象节点', () => {
-      const parentNode: MemoNode = {
-        id: 'parent',
-        key: 'parent',
-        type: 'object',
-        value: '',
-        children: [],
-      };
+      useAppStore.getState().addMemoNode(null, 'object');
+      const parentId = useAppStore.getState().memo[0].id;
 
-      useStore.getState().addMemoNode(parentNode, null);
+      useAppStore.getState().addMemoNode(parentId, 'string');
 
-      const childNode: MemoNode = {
-        id: 'child',
-        key: 'child',
-        type: 'string',
-        value: 'childValue',
-        children: [],
-      };
-
-      useStore.getState().addMemoNode(childNode, parentNode.id);
-
-      const { memo } = useStore.getState();
+      const { memo } = useAppStore.getState();
       expect(memo[0].children).toHaveLength(1);
-      expect(memo[0].children[0].key).toBe('child');
+      expect(memo[0].children[0].type).toBe('string');
     });
 
     it('应该能够添加子节点到数组节点', () => {
-      const arrayNode: MemoNode = {
-        id: 'array',
-        key: 'items',
-        type: 'array',
-        value: '',
-        children: [],
-      };
+      useAppStore.getState().addMemoNode(null, 'array');
+      const arrayId = useAppStore.getState().memo[0].id;
 
-      useStore.getState().addMemoNode(arrayNode, null);
+      useAppStore.getState().addMemoNode(arrayId, 'string');
 
-      const elementNode: MemoNode = {
-        id: 'element',
-        key: '0',
-        type: 'string',
-        value: 'element1',
-        children: [],
-      };
-
-      useStore.getState().addMemoNode(elementNode, arrayNode.id);
-
-      const { memo } = useStore.getState();
+      const { memo } = useAppStore.getState();
       expect(memo[0].children).toHaveLength(1);
-      expect(memo[0].children[0].value).toBe('element1');
+      expect(memo[0].children[0].type).toBe('string');
     });
   });
 
   describe('节点更新和删除', () => {
-    it('应该能够更新节点值', () => {
-      const node: MemoNode = {
-        id: 'node-1',
-        key: 'test',
-        type: 'string',
-        value: 'original',
-        children: [],
-      };
+    it('应该能够更新节点key', () => {
+      useAppStore.getState().addMemoNode(null, 'string');
+      const nodeId = useAppStore.getState().memo[0].id;
 
-      useStore.getState().addMemoNode(node, null);
+      useAppStore.getState().updateMemoNode(nodeId, 'updatedKey');
 
-      useStore.getState().updateMemoNode(node.id, (draft) => {
-        draft.value = 'updated';
-      });
-
-      const { memo } = useStore.getState();
-      expect(memo[0].value).toBe('updated');
+      const { memo } = useAppStore.getState();
+      expect(memo[0].key).toBe('updatedKey');
     });
 
     it('应该能够删除节点', () => {
-      const node: MemoNode = {
-        id: 'node-1',
-        key: 'toDelete',
-        type: 'string',
-        value: 'value',
-        children: [],
-      };
+      useAppStore.getState().addMemoNode(null, 'string');
+      const nodeId = useAppStore.getState().memo[0].id;
+      expect(useAppStore.getState().memo).toHaveLength(1);
 
-      useStore.getState().addMemoNode(node, null);
-      expect(useStore.getState().memo).toHaveLength(1);
+      useAppStore.getState().deleteMemoNode(nodeId);
 
-      useStore.getState().deleteMemoNode(node.id);
-
-      expect(useStore.getState().memo).toHaveLength(0);
+      expect(useAppStore.getState().memo).toHaveLength(0);
     });
 
     it('删除父节点应该同时删除子节点', () => {
-      const parentNode: MemoNode = {
-        id: 'parent',
-        key: 'parent',
-        type: 'object',
-        value: '',
-        children: [],
-      };
+      useAppStore.getState().addMemoNode(null, 'object');
+      const parentId = useAppStore.getState().memo[0].id;
 
-      useStore.getState().addMemoNode(parentNode, null);
+      useAppStore.getState().addMemoNode(parentId, 'string');
+      expect(useAppStore.getState().memo[0].children).toHaveLength(1);
 
-      const childNode: MemoNode = {
-        id: 'child',
-        key: 'child',
-        type: 'string',
-        value: 'value',
-        children: [],
-      };
+      useAppStore.getState().deleteMemoNode(parentId);
 
-      useStore.getState().addMemoNode(childNode, parentNode.id);
-
-      useStore.getState().deleteMemoNode(parentNode.id);
-
-      expect(useStore.getState().memo).toHaveLength(0);
+      expect(useAppStore.getState().memo).toHaveLength(0);
     });
   });
 
-  describe('节点类型转换', () => {
-    it('应该能够将字符串节点转换为数字节点', () => {
-      const node: MemoNode = {
-        id: 'node-1',
-        key: 'value',
-        type: 'string',
-        value: '123',
-        children: [],
-      };
-
-      useStore.getState().addMemoNode(node, null);
-
-      useStore.getState().updateMemoNode(node.id, (draft) => {
-        draft.type = 'number';
-        draft.value = 123;
-      });
-
-      const { memo } = useStore.getState();
-      expect(memo[0].type).toBe('number');
-      expect(memo[0].value).toBe(123);
-    });
-
-    it('应该能够将字符串节点转换为对象节点', () => {
-      const node: MemoNode = {
-        id: 'node-1',
-        key: 'value',
-        type: 'string',
-        value: 'text',
-        children: [],
-      };
-
-      useStore.getState().addMemoNode(node, null);
-
-      useStore.getState().updateMemoNode(node.id, (draft) => {
-        draft.type = 'object';
-        draft.value = '';
-        draft.children = [];
-      });
-
-      const { memo } = useStore.getState();
-      expect(memo[0].type).toBe('object');
-      expect(memo[0].children).toEqual([]);
-    });
-  });
-
-  describe('节点选择和编辑状态', () => {
+  describe('节点选择状态', () => {
     it('应该能够设置选中的节点', () => {
-      const node: MemoNode = {
-        id: 'node-1',
-        key: 'test',
-        type: 'string',
-        value: 'value',
-        children: [],
-      };
+      useAppStore.getState().addMemoNode(null, 'string');
+      const nodeId = useAppStore.getState().memo[0].id;
 
-      useStore.getState().setSelectedMemoNode(node);
+      useAppStore.getState().setSelectedMemoNodeId(nodeId);
 
-      const { selectedMemoNode } = useStore.getState();
-      expect(selectedMemoNode).toBe(node);
+      expect(useAppStore.getState().selectedMemoNodeId).toBe(nodeId);
     });
 
-    it('应该能够设置编辑中的节点', () => {
-      const node: MemoNode = {
-        id: 'node-1',
-        key: 'test',
-        type: 'string',
-        value: 'value',
-        children: [],
-      };
+    it('应该能够清除选中状态', () => {
+      useAppStore.getState().setSelectedMemoNodeId('some-id');
+      useAppStore.getState().setSelectedMemoNodeId(null);
 
-      useStore.getState().setEditingMemoNode(node);
-
-      const { editingMemoNode } = useStore.getState();
-      expect(editingMemoNode).toBe(node);
-    });
-
-    it('应该能够打开选择节点类型对话框', () => {
-      useStore.getState().openSelectNodeTypeDialog('parent-id');
-
-      const state = useStore.getState();
-      expect(state.editingMemoNode).toBeNull();
-      expect(state.selectedMemoNode).toBeTruthy();
+      expect(useAppStore.getState().selectedMemoNodeId).toBeNull();
     });
   });
 
-  describe('节点折叠状态', () => {
-    it('应该能够切换节点折叠状态', () => {
-      const node: MemoNode = {
-        id: 'node-1',
-        key: 'test',
-        type: 'object',
-        value: '',
-        children: [],
-        isCollapsed: false,
-      };
+  describe('选择节点类型对话框', () => {
+    it('应该能够打开选择节点类型对话框', () => {
+      useAppStore.getState().openSelectNodeTypeDialog('parent-id');
 
-      useStore.getState().addMemoNode(node, null);
+      const { selectNodeTypeDialog } = useAppStore.getState();
+      expect(selectNodeTypeDialog.isOpen).toBe(true);
+      expect(selectNodeTypeDialog.parentId).toBe('parent-id');
+    });
 
-      useStore.getState().updateMemoNode(node.id, (draft) => {
-        draft.isCollapsed = true;
-      });
+    it('应该能够关闭选择节点类型对话框', () => {
+      useAppStore.getState().openSelectNodeTypeDialog('parent-id');
+      useAppStore.getState().closeSelectNodeTypeDialog();
 
-      const { memo } = useStore.getState();
-      expect(memo[0].isCollapsed).toBe(true);
+      const { selectNodeTypeDialog } = useAppStore.getState();
+      expect(selectNodeTypeDialog.isOpen).toBe(false);
+    });
+  });
+
+  describe('直接设置memo', () => {
+    it('应该能够通过setMemo直接设置数据', () => {
+      useAppStore.getState().setMemo([
+        {
+          id: 'node-1',
+          key: 'test',
+          type: 'string',
+          value: 'hello',
+          children: [],
+        },
+      ]);
+
+      const { memo } = useAppStore.getState();
+      expect(memo).toHaveLength(1);
+      expect(memo[0].key).toBe('test');
+      expect(memo[0].value).toBe('hello');
     });
   });
 });

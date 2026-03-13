@@ -1,118 +1,51 @@
-import { useUpdateTimeline } from '@/store/reactFlowStore';
-import type { SubTask, TaskNode, TaskTimeline } from '@/types/timeline';
+import { UniversalErrorDialog } from '@/components/ui/UniversalErrorDialog';
+import { useAppStore } from '@/store';
+import { selectTimelineById } from '@/store/timelineSlice';
+import type { TaskNodeDraft } from '@/types/flat';
+import { TaskNodeSchema, type NodeStatus, type TaskNode } from '@/types/timeline';
 import type { RFNode } from '@/utils/reactFlowObjects';
-import {
-  Button,
-  Checkbox,
-  CheckboxGroup,
-  Dialog,
-  Fieldset,
-  HStack,
-  IconButton,
-  Input,
-  Portal,
-  RadioGroup,
-  Separator,
-  Stack,
-  VStack,
-  type UseDialogReturn
-} from '@chakra-ui/react';
+import { RadioGroup, Stack, type UseDialogReturn } from '@chakra-ui/react';
 import { produce } from 'immer';
-import { useState } from 'react';
-import { LuPlus, LuTrash2 } from 'react-icons/lu';
+import { useMemo, useState } from 'react';
 import { TaskNodeDialogBase } from './TaskNodeDialogBase';
 
 interface EditTaskNodeDialogProps {
   targetNode: RFNode<TaskNode>;
-  control: UseDialogReturn;
+  disclosure: UseDialogReturn;
 }
 
-const NotTaskTimelineError = ({ control }: { control: UseDialogReturn }) => (
-  <Dialog.RootProvider value={control}>
-    <Portal>
-      <Dialog.Backdrop />
-      <Dialog.Positioner>
-        <Dialog.Content>
-          <Dialog.Header>
-            <Dialog.Title>错误</Dialog.Title>
-          </Dialog.Header>
-          <Dialog.Body>只能在任务时间线中编辑任务节点。</Dialog.Body>
-          <Dialog.Footer>
-            <Dialog.ActionTrigger asChild>
-              <Button variant="outline">关闭</Button>
-            </Dialog.ActionTrigger>
-          </Dialog.Footer>
-        </Dialog.Content>
-      </Dialog.Positioner>
-    </Portal>
-  </Dialog.RootProvider>
-);
+export const EditTaskNodeDialog = ({ targetNode, disclosure }: EditTaskNodeDialogProps) => {
+  const { timelineId } = targetNode.data;
+  const [node, setNode] = useState<TaskNodeDraft>(() => structuredClone(targetNode.data));
+  const updateNode = useAppStore((s) => s.updateNode);
+  const timeline = useAppStore(useMemo(() => selectTimelineById(timelineId), [timelineId]));
 
-export const EditTaskNodeDialog = ({ targetNode, control }: EditTaskNodeDialogProps) => {
-  const [edit, setEdit] = useState<TaskNode>({ ...targetNode.data });
-  const updateTimeline = useUpdateTimeline();
-  const timeline = targetNode.data.timeline;
-
-  if (timeline.type !== 'task') {
-    return <NotTaskTimelineError control={control} />;
+  if (timeline?.type !== 'task') {
+    return <UniversalErrorDialog disclosure={disclosure} message="只能在任务时间线中编辑任务节点" />;
   }
 
   const handleSubmit = () => {
-    updateTimeline(timeline.id, (draft) => {
-      const taskTimeline = draft as TaskTimeline;
-      const nodeIndex = taskTimeline.nodes.findIndex((n) => n.id === edit.id);
-      if (nodeIndex !== -1) {
-        taskTimeline.nodes[nodeIndex] = edit;
-      }
-    });
-  };
-
-  const handleAddSubtask = () => {
-    setEdit(
-      produce((draft) => {
-        if (!draft.subtasks) {
-          draft.subtasks = [];
-        }
-        draft.subtasks.push({ title: '', status: 'todo' });
-      }),
-    );
-  };
-
-  const handleDeleteSubtask = (index: number) => {
-    setEdit(
-      produce((draft) => {
-        if (draft.subtasks) {
-          draft.subtasks.splice(index, 1);
-        }
-      }),
-    );
-  };
-
-  const handleUpdateSubtask = (index: number, updates: Partial<SubTask>) => {
-    setEdit(
-      produce((draft) => {
-        if (draft.subtasks && draft.subtasks[index]) {
-          draft.subtasks[index] = { ...draft.subtasks[index], ...updates };
-        }
-      }),
-    );
+    const payload = TaskNodeSchema.parse(node);
+    // TODO: handle error here
+    updateNode(payload.id, () => payload);
   };
 
   return (
     <TaskNodeDialogBase
-      control={control}
-      node={edit}
-      setNode={setEdit}
+      disclosure={disclosure}
+      nodeDraft={node}
+      setNodeDraft={setNode}
       title="编辑任务"
       saveButtonText="保存"
       onSubmit={handleSubmit}
     >
       <RadioGroup.Root
-        value={edit.status}
+        data-value={node.status}
+        value={node.status}
         onValueChange={(details) => {
-          setEdit(
+          setNode(
             produce((draft) => {
-              draft.status = details.value as TaskNode['status'];
+              draft.status = details.value as NodeStatus;
             }),
           );
         }}
@@ -134,65 +67,13 @@ export const EditTaskNodeDialog = ({ targetNode, control }: EditTaskNodeDialogPr
             <RadioGroup.ItemIndicator />
             <RadioGroup.ItemText>Skipped</RadioGroup.ItemText>
           </RadioGroup.Item>
-          <RadioGroup.Item value="lock">
+          <RadioGroup.Item value="locked">
             <RadioGroup.ItemHiddenInput />
             <RadioGroup.ItemIndicator />
-            <RadioGroup.ItemText>Lock</RadioGroup.ItemText>
+            <RadioGroup.ItemText>Locked</RadioGroup.ItemText>
           </RadioGroup.Item>
         </Stack>
       </RadioGroup.Root>
-
-      <Separator />
-
-      <Fieldset.Root>
-        <Fieldset.Legend width="full">
-          <HStack justify="space-between" width="full">
-            <span>子任务</span>
-            <Button size="xs" onClick={handleAddSubtask}>
-              <LuPlus />
-              添加子任务
-            </Button>
-          </HStack>
-        </Fieldset.Legend>
-        <CheckboxGroup>
-          <Fieldset.Content>
-            {edit.subtasks && edit.subtasks.length > 0 && (
-              <VStack align="stretch" gap={2} mt={2}>
-                {edit.subtasks.map((subtask, index) => (
-                  <HStack key={index} gap={2}>
-                    <Checkbox.Root
-                      checked={subtask.status === 'done'}
-                      onCheckedChange={(e) => {
-                        handleUpdateSubtask(index, {
-                          status: e.checked ? 'done' : 'todo',
-                        });
-                      }}
-                      size="sm"
-                    >
-                      <Checkbox.HiddenInput />
-                      <Checkbox.Control>
-                        <Checkbox.Indicator />
-                      </Checkbox.Control>
-                    </Checkbox.Root>
-                    <Input
-                      size="sm"
-                      flex="1"
-                      value={subtask.title}
-                      onChange={(e) => {
-                        handleUpdateSubtask(index, { title: e.target.value });
-                      }}
-                      placeholder="输入子任务标题"
-                    />
-                    <IconButton size="sm" variant="ghost" colorPalette="red" onClick={() => handleDeleteSubtask(index)}>
-                      <LuTrash2 />
-                    </IconButton>
-                  </HStack>
-                ))}
-              </VStack>
-            )}
-          </Fieldset.Content>
-        </CheckboxGroup>
-      </Fieldset.Root>
     </TaskNodeDialogBase>
   );
 };

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { Provider } from '@/components/ui/Provider';
+import { AppTestProvider } from '../TestProviders';
 import { TaskNodeComponent } from '@/components/timeline/TaskNodeComponent';
 import type { TaskNode } from '@/types/timeline';
 import type { RFNode } from '@/utils/reactFlowObjects';
@@ -13,11 +13,16 @@ describe('TaskNodeComponent 组件测试', () => {
     data: {
       id: 'task-1',
       type: 'task',
+      timelineId: 'timeline-1',
       title: '测试任务',
-      description: '这是一个测试任务',
+      content: {
+        description: '这是一个测试任务',
+        subtasks: [],
+      },
       status: 'todo',
-      prevs: [],
-      succs: [],
+      dependedBy: [],
+      dependsOn: [],
+      milestone: false,
     },
   };
 
@@ -27,9 +32,9 @@ describe('TaskNodeComponent 组件测试', () => {
 
   it('应该渲染任务标题', () => {
     render(
-      <Provider>
-        <TaskNodeComponent {...mockTaskNode} />
-      </Provider>
+      <AppTestProvider>
+        <TaskNodeComponent {...(mockTaskNode as any)} />
+      </AppTestProvider>
     );
 
     expect(screen.getByText('测试任务')).toBeInTheDocument();
@@ -37,12 +42,12 @@ describe('TaskNodeComponent 组件测试', () => {
 
   it('todo状态应该显示正确的样式', () => {
     render(
-      <Provider>
-        <TaskNodeComponent {...mockTaskNode} />
-      </Provider>
+      <AppTestProvider>
+        <TaskNodeComponent {...(mockTaskNode as any)} />
+      </AppTestProvider>
     );
 
-    const node = screen.getByText('测试任务').closest('div');
+    const node = screen.getByTestId('task-node');
     expect(node).toHaveAttribute('data-status', 'todo');
   });
 
@@ -56,12 +61,12 @@ describe('TaskNodeComponent 组件测试', () => {
     };
 
     render(
-      <Provider>
-        <TaskNodeComponent {...doneNode} />
-      </Provider>
+      <AppTestProvider>
+        <TaskNodeComponent {...(doneNode as any)} />
+      </AppTestProvider>
     );
 
-    const node = screen.getByText('测试任务').closest('div');
+    const node = screen.getByTestId('task-node');
     expect(node).toHaveAttribute('data-status', 'done');
   });
 
@@ -70,18 +75,18 @@ describe('TaskNodeComponent 组件测试', () => {
       ...mockTaskNode,
       data: {
         ...mockTaskNode.data,
-        status: 'lock' as const,
+        status: 'locked' as const,
       },
     };
 
     render(
-      <Provider>
-        <TaskNodeComponent {...lockedNode} />
-      </Provider>
+      <AppTestProvider>
+        <TaskNodeComponent {...(lockedNode as any)} />
+      </AppTestProvider>
     );
 
-    const node = screen.getByText('测试任务').closest('div');
-    expect(node).toHaveAttribute('data-status', 'lock');
+    const node = screen.getByTestId('task-node');
+    expect(node).toHaveAttribute('data-status', 'locked');
   });
 
   it('里程碑任务应该显示特殊标记', () => {
@@ -94,13 +99,13 @@ describe('TaskNodeComponent 组件测试', () => {
     };
 
     render(
-      <Provider>
-        <TaskNodeComponent {...milestoneNode} />
-      </Provider>
+      <AppTestProvider>
+        <TaskNodeComponent {...(milestoneNode as any)} />
+      </AppTestProvider>
     );
 
     // 应该有里程碑标记（可能是图标或徽章）
-    const node = screen.getByText('测试任务').closest('div');
+    const node = screen.getByTestId('task-node');
     expect(node).toHaveAttribute('data-milestone', 'true');
   });
 
@@ -109,17 +114,20 @@ describe('TaskNodeComponent 组件测试', () => {
       ...mockTaskNode,
       data: {
         ...mockTaskNode.data,
-        subtasks: [
-          { title: '子任务1', status: 'done' as const },
-          { title: '子任务2', status: 'todo' as const },
-        ],
+        content: {
+          description: '',
+          subtasks: [
+            { id: '1', title: '子任务1', done: true },
+            { id: '2', title: '子任务2', done: false },
+          ],
+        },
       },
     };
 
     render(
-      <Provider>
-        <TaskNodeComponent {...nodeWithSubtasks} />
-      </Provider>
+      <AppTestProvider>
+        <TaskNodeComponent {...(nodeWithSubtasks as any)} />
+      </AppTestProvider>
     );
 
     // 应该显示子任务数量或进度
@@ -136,12 +144,12 @@ describe('TaskNodeComponent 组件测试', () => {
     };
 
     render(
-      <Provider>
-        <TaskNodeComponent {...skippedNode} />
-      </Provider>
+      <AppTestProvider>
+        <TaskNodeComponent {...(skippedNode as any)} />
+      </AppTestProvider>
     );
 
-    const node = screen.getByText('测试任务').closest('div');
+    const node = screen.getByTestId('task-node');
     expect(node).toHaveAttribute('data-status', 'skipped');
   });
 });

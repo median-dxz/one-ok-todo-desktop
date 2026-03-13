@@ -1,18 +1,17 @@
-import type { StorageValue } from 'zustand/middleware';
+import { core } from '@tauri-apps/api';
 import superjson from 'superjson';
-import { invoke } from '@tauri-apps/api/core';
 
-import type { PersistedAppData, StorageAdapter } from './types';
+import type { StorageAdapter } from '@/types/storage';
 
 export const tauriAdapter: StorageAdapter = {
   name: 'tauri',
   getItem: async () => {
     try {
-      const data = await invoke<string>('load_data_rust');
+      const data = await core.invoke<string>('load_data_rust');
       if (!data) {
         return null;
       }
-      return superjson.parse(data) as StorageValue<PersistedAppData>;
+      return superjson.parse(data);
     } catch (error) {
       console.error('Failed to load data from Tauri:', error);
       return null;
@@ -20,14 +19,14 @@ export const tauriAdapter: StorageAdapter = {
   },
   setItem: async (value) => {
     try {
-      await invoke('save_data_rust', { data: superjson.stringify(value) });
+      await core.invoke('save_data_rust', { data: superjson.stringify(value) });
     } catch (error) {
       console.error('Failed to save data to Tauri:', error);
     }
   },
   removeItem: async () => {
     try {
-      await invoke('remove_data_rust');
+      await core.invoke('remove_data_rust');
     } catch (error) {
       console.error('Failed to remove data from Tauri:', error);
     }

@@ -1,9 +1,10 @@
-import { Box, Button, Center, Heading, useDialog, VStack } from '@chakra-ui/react';
-import { LuPlus, LuClock } from 'react-icons/lu';
+import { useSessionDialog } from '@/hooks/useSessionDialog';
+import { Box, Button, Center, Heading, VStack } from '@chakra-ui/react';
+import { LuClock, LuPlus } from 'react-icons/lu';
 import { EditTimelineDialog } from './EditTimelineDialog';
 
 export const EmptyTimelineScreen = () => {
-  const editTimelineDialog = useDialog();
+  const editTimelineControl = useSessionDialog();
 
   return (
     <Center h="100%">
@@ -13,11 +14,11 @@ export const EmptyTimelineScreen = () => {
         </Box>
         <Heading size="md">创建一条时间线</Heading>
         <Box color="gray.500">该分组下暂无任何时间线，点击下方按钮以创建一条新时间线</Box>
-        <Button colorPalette="blue" variant="solid" size="sm" onClick={() => editTimelineDialog.setOpen(true)}>
+        <Button colorPalette="blue" variant="solid" size="sm" onClick={() => editTimelineControl.openDialog()}>
           <LuPlus />
           新建
         </Button>
-        <EditTimelineDialog control={editTimelineDialog} />
+        <EditTimelineDialog disclosure={editTimelineControl.dialog} />
       </VStack>
     </Center>
   );

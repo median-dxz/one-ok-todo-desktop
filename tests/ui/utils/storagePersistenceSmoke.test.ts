@@ -1,21 +1,30 @@
 import { PERSISTENCE_ERROR_EVENT } from '@/utils/persistenceError';
 import superjson from 'superjson';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi, beforeAll } from 'vitest';
 
 const mockInvoke = vi.fn();
 const mockDbGet = vi.fn();
 const mockDbPut = vi.fn();
 const mockDbDelete = vi.fn();
+const mockIsTauri = vi.fn();
 
-vi.mock('@tauri-apps/api/core', () => ({
-  invoke: mockInvoke,
-}));
+vi.mock(
+  '@tauri-apps/api/core',
+  () =>
+    ({
+      invoke: mockInvoke,
+      isTauri: mockIsTauri,
+    }),
+);
 
 vi.mock('idb', () => ({
   openDB: vi.fn(async () => ({
     get: mockDbGet,
     put: mockDbPut,
     delete: mockDbDelete,
+    objectStoreNames: {
+      contains: () => true
+    }
   })),
 }));
 
@@ -24,25 +33,31 @@ describe('storage 持久化冒烟测试', () => {
   let appStorage: typeof import('@/utils/storage/index').appStorage;
 
   beforeAll(async () => {
+    // 强制清除模块缓存以确保 mock 生效
+    vi.resetModules();
     const module = await import('@/utils/storage/index');
     appStorage = module.appStorage;
   });
 
   beforeEach(() => {
-    vi.resetModules();
+    mockIsTauri.mockReturnValue(false); // 默认非 Tauri 环境
     vi.clearAllMocks();
-    window.__TAURI__ = undefined;
   });
 
+  const validMetadata = {
+    lastModified: '2026-03-04T00:00:00.000Z',
+    syncStatus: 'synced' as const,
+  };
+
   it('可恢复数据应通过恢复流程并正常返回', async () => {
-    mockDbGet.mockResolvedValueOnce(
-      superjson.stringify({
-        version: 3,
-        state: {
-          lastModified: '2026-03-04T00:00:00.000Z',
-        },
-      }),
-    );
+    mockDbGet.mockResolvedValueOnce({
+      version: 3,
+      state: {
+        metadata: validMetadata,
+        memo: [],
+        timelineGroups: [],
+      },
+    });
 
     const value = await appStorage.getItem(APPDATA_KEY);
 
@@ -52,16 +67,15 @@ describe('storage 持久化冒烟测试', () => {
   });
 
   it('不可恢复数据应抛出错误并发送 UI 错误事件', async () => {
-    mockDbGet.mockResolvedValueOnce(
-      superjson.stringify({
-        version: 3,
-        state: {
-          lastModified: '2026-03-04T00:00:00.000Z',
-          memo: 'invalid-memo',
-          timelineGroups: [],
-        },
-      }),
-    );
+    // 模拟一个严重错误的结构
+    mockDbGet.mockResolvedValueOnce({
+      version: 3,
+      state: {
+        metadata: validMetadata,
+        memo: 'invalid-should-be-array', // 错误类型
+        timelineGroups: [],
+      },
+    });
 
     const eventSpy = vi.fn();
     window.addEventListener(PERSISTENCE_ERROR_EVENT, eventSpy);
@@ -75,29 +89,29 @@ describe('storage 持久化冒烟测试', () => {
   });
 
   it('在 Tauri 环境下保存时应向 Tauri 适配器写入', async () => {
-    window.__TAURI__ = {};
-
+    vi.useFakeTimers();
+    mockIsTauri.mockReturnValue(true);
     const payload = {
       version: 3,
       state: {
-        lastModified: '2026-03-04T00:00:00.000Z',
-        syncStatus: 'synced' as const,
+        metadata: validMetadata,
         memo: [],
         timelineGroups: [],
       },
     };
 
-    await appStorage.setItem(APPDATA_KEY, payload);
+    appStorage.setItem(APPDATA_KEY, payload);
+    await vi.advanceTimersByTimeAsync(300);
 
     expect(mockDbPut).not.toHaveBeenCalled();
     expect(mockInvoke).toHaveBeenCalledWith('save_data_rust', {
       data: superjson.stringify(payload),
     });
+    vi.useRealTimers();
   });
 
   it('在 Tauri 环境下删除时应调用 tauri remove 命令', async () => {
-    window.__TAURI__ = {};
-
+    mockIsTauri.mockReturnValue(true);
     await appStorage.removeItem(APPDATA_KEY);
 
     expect(mockDbDelete).not.toHaveBeenCalled();
@@ -105,8 +119,7 @@ describe('storage 持久化冒烟测试', () => {
   });
 
   it('首次启动（所有数据源均为空）时，应正常返回而不抛出错误', async () => {
-    window.__TAURI__ = {}; // 模拟 Tauri 环境
-
+    mockIsTauri.mockReturnValue(true);
     // Rust 端返回 null
     mockInvoke.mockResolvedValueOnce(null);
 
@@ -114,9 +127,10 @@ describe('storage 持久化冒烟测试', () => {
     const value = await appStorage.getItem(APPDATA_KEY);
 
     // 返回默认数据
-    expect(value).not.toBeNullable();
+    expect(value).not.toBeNull();
+    expect(value?.state.metadata).toBeDefined();
 
-    // 确保两端都被正确查询过
+    // 确保查询过 Rust 端
     expect(mockInvoke).toHaveBeenCalledWith('load_data_rust');
   });
 });

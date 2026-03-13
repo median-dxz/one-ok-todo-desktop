@@ -1,6 +1,8 @@
-import { useDeleteTimeline, useReactFlowStore, useUpdateTaskNodeStatus } from '@/store/reactFlowStore';
+import { useAppStore } from '@/store';
+import { useReactFlowStateStore } from '@/store/reactFlowStore';
 import type { DelimiterNode, TaskNode } from '@/types/timeline';
 import type { RFNode } from '@/utils/reactFlowObjects';
+import { useShallow } from 'zustand/react/shallow';
 import {
   Badge,
   Button,
@@ -12,7 +14,6 @@ import {
   Icon,
   Separator,
   Text,
-  useDialog,
   VStack,
   Wrap,
 } from '@chakra-ui/react';
@@ -30,6 +31,7 @@ import {
 import { AddTaskNodeDialog } from './AddTaskNodeDialog';
 import { EditTaskNodeDialog } from './EditTaskNodeDialog';
 import { EditTimelineDialog } from './EditTimelineDialog';
+import { useSessionDialog } from '@/hooks/useSessionDialog';
 
 interface RightSidebarProps {
   nodeId: string | null;
@@ -38,16 +40,16 @@ interface RightSidebarProps {
 
 // Panel for Task Nodes
 function TaskPanel({ node, onClose }: { node: RFNode<TaskNode>; onClose?: () => void }) {
-  const taskNodeEditControl = useDialog();
-  const taskNodeAddControl = useDialog();
-  const taskNode = node.data;
-  const updateTaskNodeStatus = useUpdateTaskNodeStatus();
+  const editTaskNodeControl = useSessionDialog();
+  const addTaskNodeControl = useSessionDialog();
+  const updateTaskNodeStatus = useAppStore((s) => s.updateTaskNodeStatus);
 
+  const taskNode = node.data;
   const { status } = taskNode;
 
   const canBeCompleted = status === 'todo';
   const canBeUndone = status === 'done' || status === 'skipped';
-  const canBeModified = status === 'todo' || status === 'lock';
+  const canBeModified = status === 'todo' || status === 'locked';
 
   return (
     <VStack w="100%" align="stretch" gap={4}>
@@ -68,18 +70,18 @@ function TaskPanel({ node, onClose }: { node: RFNode<TaskNode>; onClose?: () => 
           Description
         </Text>
         <Text fontSize="sm" color="gray.600">
-          {taskNode.description || 'No description provided.'}
+          {taskNode.content.description || 'No description provided.'}
         </Text>
       </VStack>
 
-      {taskNode.subtasks && taskNode.subtasks.length > 0 && (
+      {taskNode.content.subtasks && taskNode.content.subtasks.length > 0 && (
         <VStack align="flex-start" gap={2}>
           <Text fontSize="sm" fontWeight="bold" color="gray.500">
-            Subtasks ({taskNode.subtasks.filter((st) => st.status === 'done').length}/{taskNode.subtasks.length})
+            Subtasks ({taskNode.content.subtasks.filter((st) => st.done).length}/{taskNode.content.subtasks.length})
           </Text>
           <VStack align="stretch" gap={2} w="100%">
-            {taskNode.subtasks.map((subtask, index) => (
-              <Checkbox.Root key={index} checked={subtask.status === 'done'} readOnly size="sm">
+            {taskNode.content.subtasks.map((subtask, index) => (
+              <Checkbox.Root key={index} checked={subtask.done} readOnly size="sm">
                 <Checkbox.HiddenInput />
                 <Checkbox.Control>
                   <Checkbox.Indicator />
@@ -103,7 +105,7 @@ function TaskPanel({ node, onClose }: { node: RFNode<TaskNode>; onClose?: () => 
               size="sm"
               colorScheme="green"
               onClick={() => {
-                updateTaskNodeStatus(taskNode.timeline.id, taskNode, 'done');
+                updateTaskNodeStatus(taskNode.timelineId, taskNode, 'done');
               }}
             >
               <Icon as={LuCheck} mr={2} />
@@ -113,7 +115,7 @@ function TaskPanel({ node, onClose }: { node: RFNode<TaskNode>; onClose?: () => 
               size="sm"
               colorScheme="orange"
               onClick={() => {
-                updateTaskNodeStatus(taskNode.timeline.id, taskNode, 'skipped');
+                updateTaskNodeStatus(taskNode.timelineId, taskNode, 'skipped');
               }}
             >
               <Icon as={LuSkipForward} mr={2} />
@@ -125,7 +127,7 @@ function TaskPanel({ node, onClose }: { node: RFNode<TaskNode>; onClose?: () => 
           <Button
             size="sm"
             onClick={() => {
-              updateTaskNodeStatus(taskNode.timeline.id, taskNode, 'todo');
+              updateTaskNodeStatus(taskNode.timelineId, taskNode, 'todo');
             }}
           >
             <Icon as={LuUndo2} mr={2} />
@@ -137,7 +139,7 @@ function TaskPanel({ node, onClose }: { node: RFNode<TaskNode>; onClose?: () => 
             <Button
               size="sm"
               onClick={() => {
-                taskNodeEditControl.setOpen(true);
+                editTaskNodeControl.openDialog();
               }}
             >
               <Icon as={LuPencil} mr={2} />
@@ -146,7 +148,7 @@ function TaskPanel({ node, onClose }: { node: RFNode<TaskNode>; onClose?: () => 
             <Button
               size="sm"
               onClick={() => {
-                taskNodeAddControl.setOpen(true);
+                addTaskNodeControl.openDialog();
               }}
             >
               <Icon as={LuPlus} mr={2} />
@@ -171,18 +173,19 @@ function TaskPanel({ node, onClose }: { node: RFNode<TaskNode>; onClose?: () => 
           </>
         )}
       </Wrap>
-      <EditTaskNodeDialog key={`${node.id}-edit-task`} targetNode={node} control={taskNodeEditControl} />
-      <AddTaskNodeDialog key={`${node.id}-add-task`} sourceNode={taskNode} control={taskNodeAddControl} />
+      <EditTaskNodeDialog key={editTaskNodeControl.session} targetNode={node} disclosure={editTaskNodeControl.dialog} />
+      <AddTaskNodeDialog key={addTaskNodeControl.session} sourceNode={taskNode} disclosure={addTaskNodeControl.dialog} />
     </VStack>
   );
 }
 
 // Panel for Delimiter (Start/End) Nodes
 function DelimiterPanel({ node, onClose }: { node: RFNode<DelimiterNode>; onClose?: () => void }) {
-  const timelineEditControl = useDialog();
-  const taskNodeAddControl = useDialog();
-  const deleteTimeline = useDeleteTimeline();
-  const timeline = node.data.timeline;
+  const editTimelineControl = useSessionDialog();
+  const addTaskNodeControl = useSessionDialog();
+
+  const deleteTimeline = useAppStore((s) => s.deleteTimeline);
+  const timeline = useAppStore((s) => s.timelines[node.data.timelineId]);
   const isStart = node.data.markerType === 'start';
   const delimiterNode = node.data;
 
@@ -214,7 +217,7 @@ function DelimiterPanel({ node, onClose }: { node: RFNode<DelimiterNode>; onClos
         <Button
           size="sm"
           onClick={() => {
-            timelineEditControl.setOpen(true);
+            editTimelineControl.openDialog();
           }}
         >
           <Icon as={LuPencil} mr={2} />
@@ -235,7 +238,7 @@ function DelimiterPanel({ node, onClose }: { node: RFNode<DelimiterNode>; onClos
           <Button
             size="sm"
             onClick={() => {
-              taskNodeAddControl.setOpen(true);
+              addTaskNodeControl.openDialog();
             }}
           >
             <Icon as={LuPlus} mr={2} />
@@ -243,14 +246,22 @@ function DelimiterPanel({ node, onClose }: { node: RFNode<DelimiterNode>; onClos
           </Button>
         )}
       </Wrap>
-      <EditTimelineDialog key={`${timeline.id}-edit`} timeline={timeline} control={timelineEditControl} />
-      <AddTaskNodeDialog key={`${timeline.id}-add-task`} sourceNode={delimiterNode} control={taskNodeAddControl} />
+      <EditTimelineDialog
+        key={editTimelineControl.session}
+        timeline={timeline}
+        disclosure={editTimelineControl.dialog}
+      />
+      <AddTaskNodeDialog
+        key={addTaskNodeControl.session}
+        sourceNode={delimiterNode}
+        disclosure={addTaskNodeControl.dialog}
+      />
     </VStack>
   );
 }
 
 export const RightSidebar = ({ nodeId, onClose }: RightSidebarProps) => {
-  const node = useReactFlowStore((state) => state.nodes.find((n) => n.id === nodeId));
+  const node = useReactFlowStateStore(useShallow((state) => state.nodes.find((n) => n.id === nodeId)));
 
   if (!node) {
     return null;

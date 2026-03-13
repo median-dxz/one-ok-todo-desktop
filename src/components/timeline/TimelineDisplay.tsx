@@ -7,23 +7,23 @@ import { LuCheck, LuPencilLine, LuX } from 'react-icons/lu';
 import '@xyflow/react/dist/style.css';
 
 import { useAppStore } from '@/store';
-import { reactFlowSelector, useReactFlowStore } from '@/store/reactFlowStore';
+import { reactFlowSelector, useReactFlowStateStore } from '@/store/reactFlowStore';
+import { selectTimelineGroupById } from '@/store/timelineSlice';
 import type { TimelineNode } from '@/types/timeline';
 import type { RFNode } from '@/utils/reactFlowObjects';
+import { useShallow } from 'zustand/react/shallow';
 import { DelimiterComponent } from './DelimiterComponent';
 import { EmptyTimelineGroupScreen } from './EmptyTimelineGroupScreen';
 import { EmptyTimelineScreen } from './EmptyTimelineScreen';
 import { RightSidebar } from './RightPanel';
 import { TaskNodeComponent } from './TaskNodeComponent';
 import { TimelineChat } from './TimelineChat';
-import { useShallow } from 'zustand/react/shallow';
-import { selectTimelineGroupById } from '@/store/timelineSlice';
 
 export function TimelineDisplay() {
   const groupId = useAppStore((state) => state.selectedTimelineGroupId);
-  const group = useAppStore(selectTimelineGroupById(groupId));
+  const group = useAppStore(selectTimelineGroupById(groupId ?? undefined));
   const updateTimelineGroup = useAppStore((state) => state.updateTimelineGroup);
-  const { nodes, edges, onNodesChange, onEdgesChange } = useReactFlowStore(useShallow(reactFlowSelector));
+  const { nodes, edges, onNodesChange, onEdgesChange } = useReactFlowStateStore(useShallow(reactFlowSelector));
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
@@ -40,7 +40,7 @@ export function TimelineDisplay() {
     return <EmptyTimelineGroupScreen />;
   }
 
-  if (group.timelines.length === 0) {
+  if (group.timelineOrder.length === 0) {
     return <EmptyTimelineScreen />;
   }
 

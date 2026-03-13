@@ -1,40 +1,51 @@
 ---
 name: state-management
-description: Use when writing or modifying store actions, Zustand selectors, Immer mutations, or syncing useAppStore with useReactFlowStateStore (syncWithTimelineSlice). Also covers dual-store pattern, superjson persistence, and node status derivation logic.
+description: Use when writing or modifying store actions, Zustand selectors, Immer mutations, dual-store context (React Flow), types mapping, and node status DAG logic.
 ---
 
-# Skill: State Management & Logic
+# Skill: State Management & Types
 
-## Overview
-- **Store**: Zustand with `immer` and `persist` middleware.
-- **Serialization**: `superjson` for rich types (Date, Set, Map).
-- **Data Model**: `TimelineGroup` -> `Timeline` -> `TaskNode` -> `SubTask`.
+## Architecture
+- **App Store**: Zustand + `immer` + `persist` (`src/store/index.ts`).
+- **UI Bridge**: `useReactFlowStateStore` (`src/store/reactFlowStore.ts`) subscribes to the app store, resolving structural alignment for `@xyflow/react`.
+- **Logic decoupling**: Status transitions (locked ↔ todo cascades) compute in a pure `GraphEngine`. Layout positioning calculates in an isolated layout engine.
 
-### Dual-store (React Flow)
-- Persistent app data lives in `useAppStore` (`src/store/index.ts`).
-- React Flow UI state lives in `useReactFlowStateStore` (`src/store/reactFlowStore.ts`) and is synced via `syncWithTimelineSlice()`.
+## Data Model: The 4-Layer Architecture
+The application strictly separates data shapes based on their lifecycle phase to ensure performance and reliability:
 
-## Implementation Patterns
-### State Mutations
-- Use `immer` (via `produce` or direct mutation in store actions) for complex state updates.
-- Example:
+1. **Persistence Layer (Nested)**: `PersistedTimelineGroup[]`
+   - Nested JSON structure used exclusively for disk/DB storage.
+   - Handled behind the scenes by `partialize` (convert to nested via `nestFlatData`) and `merge` (convert to flat via `flattenPersistedData`). Ensure O(1) reads via `superjson`.
+2. **Domain Layer (App Data)**: `TimelineGroup`, `Timeline`, `TimelineNode` (`src/types/timeline.ts`)
+   - The standard nested entity shapes (e.g., `TimelineGroup` contains an array of `Timeline` objects). Used heavily by schema generation and as the target structure reconstructed for the React Flow UI bridge.
+3. **Store Layer (Flat)**: `FlatTimelineData` & `*Flat` schemas (`src/types/flat.ts`)
+   - Normalized flat dictionaries used solely inside `useAppStore`. Essential for performance (O(1) lookups, shallow Immer mutations).
+   - `groups: Record<string, TimelineGroupFlat>` (Holds `timelineOrder: string[]`).
+   - `timelines: Record<string, TaskTimelineFlat | RecurrenceTimelineFlat>` (Task timelines hold `nodeOrder: string[]`).
+   - `nodes: Record<string, TaskNode | DelimiterNode>`.
+   - DAG logical relations use `dependsOn` (forward) and `dependedBy` (backward) arrays of IDs.
+4. **Form Layer (Draft)**: `*Draft` schemas (`src/types/flat.ts`)
+   - Relaxed input shapes (using `z.input`) used strictly for UI form state and data entry (e.g., `TaskNodeDraft`).
+   - Allows omitting runtime-controlled fields (like `timelineId`) before dispatching the `add*` action. Store actions validate the Draft and generate the final Flat entity.
+
+## Mutations & Selectors
+- **Mutations (Immer)**: Mutate directly in `set(state => ...)`. You do **not** need a explicit `produce` wrapper since middleware is at the root.
   ```typescript
-  updateTimeline: (id, updater) => set(produce((state) => {
-    const timeline = findTimeline(state, id);
-    if (timeline) updater(timeline);
-  }))
+  updateTimeline: (timelineId, recipe) => set((state) => {
+    const timeline = state.timelines[timelineId];
+    if (timeline) {
+      const r = recipe(timeline);
+      r && Object.assign(timeline, r); // Fallback for pure function returns
+    }
+  })
   ```
+- **Selectors**: Always prefer fine-grained `selectX(state)` functions to prevent component re-renders. (e.g. lookup dict directly rather than reconstruct nested states everywhere).
 
-### Selectors
-- Use fine-grained selectors to prevent unnecessary re-renders.
-- `const task = useAppStore(s => s.tasks.find(t => t.id === id))`.
-
-### Business Logic
-- Status calculation (locked/todo/done) must be derived or computed in store actions using utility functions from `src/utils/`.
-
-Note: in current types the status value is `lock` (not `locked`). See `src/types/timeline.ts`.
-
-## Persistence & Sync
-- Data is saved to local disk via Tauri command `save_data_rust`.
-- Fallback to IndexedDB (`idb`) for web.
-- Use `superjson` for all serialization to avoid losing `Date` and `Set` instances.
+## Persistence & Reliability
+- **Multi-source adapters**: Aggregates from local **Tauri file** (`root-data.json`), **IndexedDB** (`idb`), and **WebDAV**. Resolves conflicts by picking the latest `lastModified` timestamp. Broadcasts writes to all.
+- **Anti-corruption layer**:
+  - The store state is strictly `FlatTimelineData`.
+  - `partialize` intercepts persist to format to nested `PersistedTimelineGroup[]` utilizing `nestFlatData()`.
+  - `merge` calls `flattenPersistedData()` during hydration.
+- **Validation**: Schema assertions via Zod. Recoverable faults hit Zod defaults `.catch(...)` rules. Unrecoverable states throw violently rather than failing silently, halting with an error dialog toast.
+- **Serialization**: Strictly `superjson` to stringify rich JS objects like `Date`/`Set`.
