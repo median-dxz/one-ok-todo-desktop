@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeEach } from 'vitest';
 import { useAppStore } from '@/store';
+import type { RecurrenceTimelineFlat, TaskTimelineFlat, TimelineGroupFlat } from '@/types/flat';
 import { nanoid } from 'nanoid';
-import type { TimelineGroupDraft, TimelineDraft } from '@/types/flat';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 // ─── 测试数据工厂 ─────────────────────────────────────────────────────────────
 
-function createTimelineGroup(title = 'New Group'): TimelineGroupDraft {
+function createTimelineGroup(title = 'New Group'): TimelineGroupFlat {
   return {
     id: nanoid(),
     title,
@@ -13,21 +13,21 @@ function createTimelineGroup(title = 'New Group'): TimelineGroupDraft {
   };
 }
 
-function createTaskTimeline(title = 'New Task Timeline'): TimelineDraft {
+function createTaskTimeline(groupId: string, title = 'New Task Timeline'): TaskTimelineFlat {
   return {
     id: nanoid(),
     title,
     type: 'task',
     nodeOrder: [],
+    groupId,
   };
 }
 
-function createRecurrenceTimeline(title = 'New Recurrence Timeline'): TimelineDraft {
-  const taskTemplates = [
-    { title: 'Template 1', content: { description: '', subtasks: [] } }
-  ];
+function createRecurrenceTimeline(groupId: string, title = 'New Recurrence Timeline'): RecurrenceTimelineFlat {
+  const taskTemplates = [{ title: 'Template 1', content: { description: '', subtasks: [] } }];
   return {
     id: nanoid(),
+    groupId,
     title,
     type: 'recurrence',
     startDate: new Date(),
@@ -133,7 +133,7 @@ describe('timelineSlice Store测试', () => {
       const group = createTimelineGroup();
       useAppStore.getState().addTimelineGroup(group);
 
-      const timeline = createTaskTimeline('测试时间线');
+      const timeline = createTaskTimeline(group.id, '测试时间线');
       useAppStore.getState().addTimeline(group.id, timeline);
 
       const state = useAppStore.getState();
@@ -150,7 +150,7 @@ describe('timelineSlice Store测试', () => {
       const group = createTimelineGroup();
       useAppStore.getState().addTimelineGroup(group);
 
-      const timeline = createRecurrenceTimeline('每日任务');
+      const timeline = createRecurrenceTimeline(group.id, '每日任务');
       useAppStore.getState().addTimeline(group.id, timeline);
 
       const state = useAppStore.getState();
@@ -163,7 +163,7 @@ describe('timelineSlice Store测试', () => {
       const group = createTimelineGroup();
       useAppStore.getState().addTimelineGroup(group);
 
-      const timeline = createTaskTimeline('测试时间线');
+      const timeline = createTaskTimeline(group.id, '测试时间线');
       useAppStore.getState().addTimeline(group.id, timeline);
 
       useAppStore.getState().deleteTimeline(timeline.id);
@@ -180,7 +180,7 @@ describe('timelineSlice Store测试', () => {
       const group = createTimelineGroup();
       useAppStore.getState().addTimelineGroup(group);
 
-      const timeline = createTaskTimeline('原标题');
+      const timeline = createTaskTimeline(group.id, '原标题');
       useAppStore.getState().addTimeline(group.id, timeline);
 
       useAppStore.getState().updateTimeline(timeline.id, (draft) => {

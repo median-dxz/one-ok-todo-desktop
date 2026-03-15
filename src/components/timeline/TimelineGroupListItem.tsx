@@ -63,7 +63,7 @@ export function TimelineGroupListItem({ groupId, onEdit, slotId, itemId }: Timel
 
   return (
     <Flex key={slotId} data-swapy-slot={slotId} minHeight="40px">
-      <Flex key={itemId} data-swapy-item={itemId} onClick={handleSelect} css={itemStyles}>
+      <Flex key={itemId} data-swapy-item={itemId} onClick={handleSelect} css={itemStyles} aria-selected={selected}>
         <Flex css={{ gap: 2, alignItems: 'center', flex: 1, minWidth: 0, userSelect: 'none' }}>
           <FiList />
           <Text fontSize="sm" truncate>

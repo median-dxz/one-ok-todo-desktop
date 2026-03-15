@@ -48,7 +48,7 @@ export const TabButton = ({
           }}
         />
       ) : null}
-      <Button {...buttonStyles} {...buttonProps}>
+      <Button {...buttonStyles} {...buttonProps} aria-selected={selected}>
         {children}
       </Button>
     </Box>

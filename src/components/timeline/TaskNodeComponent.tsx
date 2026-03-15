@@ -98,6 +98,7 @@ export function TaskNodeComponent({ data: node, selected }: NodeProps<RFNode<Tas
       <Handle type="target" position={Position.Left} />
       <Box
         data-testid="task-node"
+        data-id={node.id}
         data-status={node.status}
         data-milestone={node.milestone ? 'true' : 'false'}
         display="flex"

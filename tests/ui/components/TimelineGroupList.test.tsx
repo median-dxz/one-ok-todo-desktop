@@ -4,9 +4,9 @@ import userEvent from '@testing-library/user-event';
 import { Provider } from '@/components/context/Provider';
 import { TimelineGroupList } from '@/components/timeline/TimelineGroupList';
 import { useAppStore } from '@/store';
-import type { TimelineGroup } from '@/types/timeline';
+import type { TimelineGroupFlat } from '@/types/flat';
 
-const mockGroups: Record<string, TimelineGroup> = {
+const mockGroups: Record<string, TimelineGroupFlat> = {
   'group-1': {
     id: 'group-1',
     title: '工作',
@@ -55,7 +55,7 @@ describe('TimelineGroupList 组件测试', () => {
 
     const moreButtons = screen.getAllByLabelText(/更多操作/i);
     await user.click(moreButtons[0]);
-    
+
     const editItem = screen.getByText(/编辑/i);
     await user.click(editItem);
 

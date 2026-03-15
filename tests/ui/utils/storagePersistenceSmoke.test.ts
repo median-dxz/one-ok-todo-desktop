@@ -8,14 +8,12 @@ const mockDbPut = vi.fn();
 const mockDbDelete = vi.fn();
 const mockIsTauri = vi.fn();
 
-vi.mock(
-  '@tauri-apps/api/core',
-  () =>
-    ({
-      invoke: mockInvoke,
-      isTauri: mockIsTauri,
-    }),
-);
+vi.mock('@tauri-apps/api', () => ({
+  core: {
+    invoke: mockInvoke,
+    isTauri: mockIsTauri,
+  },
+}));
 
 vi.mock('idb', () => ({
   openDB: vi.fn(async () => ({
@@ -23,8 +21,8 @@ vi.mock('idb', () => ({
     put: mockDbPut,
     delete: mockDbDelete,
     objectStoreNames: {
-      contains: () => true
-    }
+      contains: () => true,
+    },
   })),
 }));
 
@@ -50,14 +48,16 @@ describe('storage 持久化冒烟测试', () => {
   };
 
   it('可恢复数据应通过恢复流程并正常返回', async () => {
-    mockDbGet.mockResolvedValueOnce({
+    const validData = {
       version: 3,
       state: {
         metadata: validMetadata,
         memo: [],
         timelineGroups: [],
       },
-    });
+    };
+    // IndexedDB 适配器期望存储的是 superjson 序列化后的字符串
+    mockDbGet.mockResolvedValueOnce(superjson.stringify(validData));
 
     const value = await appStorage.getItem(APPDATA_KEY);
 
@@ -67,15 +67,15 @@ describe('storage 持久化冒烟测试', () => {
   });
 
   it('不可恢复数据应抛出错误并发送 UI 错误事件', async () => {
-    // 模拟一个严重错误的结构
-    mockDbGet.mockResolvedValueOnce({
+    const invalidData = {
       version: 3,
       state: {
         metadata: validMetadata,
-        memo: 'invalid-should-be-array', // 错误类型
+        memo: 'invalid-should-be-array',
         timelineGroups: [],
       },
-    });
+    };
+    mockDbGet.mockResolvedValueOnce(superjson.stringify(invalidData));
 
     const eventSpy = vi.fn();
     window.addEventListener(PERSISTENCE_ERROR_EVENT, eventSpy);

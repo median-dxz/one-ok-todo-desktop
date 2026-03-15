@@ -53,6 +53,9 @@ export default defineConfig([
     plugins: { markdown },
     language: 'markdown/commonmark',
     extends: [markdown.configs.recommended],
+    rules: {
+      'markdown/no-missing-label-refs': 'off',
+    },
   },
   prettier,
 ]);

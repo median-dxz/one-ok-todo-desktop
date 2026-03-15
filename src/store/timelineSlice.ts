@@ -175,10 +175,10 @@ export const createTimelineSlice: StateCreator<
 
   updateNode: (nodeId, recipe) =>
     set((state) => {
-      const existing = state.nodes[nodeId];
-      if (existing) {
-        const r = recipe(existing);
-        r && Object.assign(existing, r);
+      const node = state.nodes[nodeId];
+      if (node) {
+        const r = recipe(node);
+        r && Object.assign(node, r);
       }
     }),
 

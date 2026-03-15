@@ -1,3 +1,5 @@
+!.gitkeep
+
 # Logs
 logs
 *.log
@@ -26,7 +28,9 @@ dist-ssr
 # playwright
 
 playwright-report
+.playwright
 .playwright-mcp
+.playwright-cli
 test-results
 
 .VSCodeCounter
@@ -34,3 +38,4 @@ test-results
 # For llm
 .plans
 .opencode
+*/skills/**/*

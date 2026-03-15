@@ -4,19 +4,25 @@ import userEvent from '@testing-library/user-event';
 import { Provider } from '@/components/context/Provider';
 import { EditTimelineGroupDialog } from '@/components/timeline/EditTimelineGroupDialog';
 import { useAppStore } from '@/store';
-import type { TimelineGroup } from '@/types/timeline';
+import type { TimelineGroupFlat } from '@/types/flat';
 import { useDialog } from '@chakra-ui/react';
 
-function DialogTestWrapper({ groupId, onOpenChange }: { groupId: string | null, onOpenChange?: (open: boolean) => void }) {
-  const disclosure = useDialog({ 
+function DialogTestWrapper({
+  groupId,
+  onOpenChange,
+}: {
+  groupId: string | null;
+  onOpenChange?: (open: boolean) => void;
+}) {
+  const disclosure = useDialog({
     defaultOpen: true,
-    onOpenChange: (details) => onOpenChange?.(details.open)
+    onOpenChange: (details) => onOpenChange?.(details.open),
   });
   return <EditTimelineGroupDialog disclosure={disclosure} groupId={groupId} />;
 }
 
 describe('EditTimelineGroupDialog 组件测试', () => {
-  const mockGroup: TimelineGroup = {
+  const mockGroup: TimelineGroupFlat = {
     id: 'test-group',
     title: '测试分组',
     timelineOrder: [],
@@ -33,7 +39,7 @@ describe('EditTimelineGroupDialog 组件测试', () => {
     render(
       <Provider>
         <DialogTestWrapper groupId={null} />
-      </Provider>
+      </Provider>,
     );
 
     expect(screen.getByText('创建组')).toBeInTheDocument();
@@ -48,11 +54,11 @@ describe('EditTimelineGroupDialog 组件测试', () => {
     render(
       <Provider>
         <DialogTestWrapper groupId={mockGroup.id} />
-      </Provider>
+      </Provider>,
     );
 
     expect(screen.getByText('编辑组')).toBeInTheDocument();
-    
+
     const input = screen.getByPlaceholderText(/输入组名称/i) as HTMLInputElement;
     expect(input.value).toBe('测试分组');
   });
@@ -64,7 +70,7 @@ describe('EditTimelineGroupDialog 组件测试', () => {
     render(
       <Provider>
         <DialogTestWrapper groupId={null} onOpenChange={onOpenChange} />
-      </Provider>
+      </Provider>,
     );
 
     const input = screen.getByPlaceholderText(/输入组名称/i);
@@ -90,7 +96,7 @@ describe('EditTimelineGroupDialog 组件测试', () => {
     render(
       <Provider>
         <DialogTestWrapper groupId={null} onOpenChange={onOpenChange} />
-      </Provider>
+      </Provider>,
     );
 
     const cancelButton = screen.getByText('取消');

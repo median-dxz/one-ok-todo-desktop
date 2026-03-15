@@ -58,8 +58,10 @@ export function TimelineDisplay() {
         }}
       >
         <Editable.Root
+          key={group.id}
           activationMode="dblclick"
-          value={group.title}
+          submitMode="enter"
+          defaultValue={group.title}
           onValueCommit={(details) => {
             updateTimelineGroup(group.id, (draft) => {
               draft.title = details.value;
