@@ -39,3 +39,4 @@ test-results
 .plans
 .opencode
 */skills/**/*
+.claude/settings.local.json

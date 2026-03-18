@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { UniversalErrorDialog } from '@/components/ui/UniversalErrorDialog';
 import { useAppStore } from '@/store';
 import { selectTimelineById, type TimelineSlice } from '@/store/timelineSlice';
-import { TaskNodeDraftSchema, type TaskNodeDraft } from '@/types/flat';
+import type { TaskNodeDraft } from '@/types/flat';
 import type { BaseNode } from '@/types/timeline';
 
 import { TaskNodeDialogBase } from './TaskNodeDialogBase';
@@ -35,9 +35,8 @@ export const AddTaskNodeDialog = ({ sourceNode, disclosure }: AddTaskNodeDialogP
     return <UniversalErrorDialog message="只能在任务时间线中添加任务节点" disclosure={disclosure} />;
   }
 
-  const handleSubmit = () => {
-    const payload = TaskNodeDraftSchema.parse(nodeDraft); // TODO handle error here
-    addTaskNode(timeline.id, { draft: payload, sourceId: sourceNode.id, insertMode });
+  const handleSubmit = (validatedData: TaskNodeDraft) => {
+    addTaskNode(timeline.id, { draft: validatedData, sourceId: sourceNode.id, insertMode });
   };
 
   return (

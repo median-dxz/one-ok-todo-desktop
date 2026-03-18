@@ -68,5 +68,5 @@ export type TaskTimelineDraft = z.input<typeof TaskTimelineDraftSchema>;
 export type RecurrenceTimelineDraft = z.input<typeof RecurrenceTimelineDraftSchema>;
 export type TimelineDraft = z.input<typeof TimelineDraftSchema>;
 
-export const TimelineGroupDraftSchema = TimelineGroupFlatSchema;
+export const TimelineGroupDraftSchema = TimelineGroupFlatSchema.omit({ id: true });
 export type TimelineGroupDraft = z.input<typeof TimelineGroupDraftSchema>;

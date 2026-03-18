@@ -28,10 +28,7 @@ function formatZodError(error: z.ZodError): string {
   return error.issues.map((issue) => `${issue.path.join('.') || 'root'}: ${issue.message}`).join('; ');
 }
 
-function validatePersistedValue(
-  sourceName: string,
-  raw: object,
-): StorageValue<PersistedAppData> {
+function validatePersistedValue(sourceName: string, raw: object): StorageValue<PersistedAppData> {
   const result = PersistedStorageValueSchema.safeParse(raw);
 
   if (!result.success) {
@@ -66,9 +63,9 @@ async function getActiveAdapters(): Promise<StorageAdapter[]> {
   const adapters: Array<StorageAdapter | null> = [];
 
   if (core.isTauri()) {
-    adapters.push(tauriAdapter);
-  } else {
-    adapters.push(await getIndexedDBAdapter());
+    adapters.push(tauriAdapter); // desktop application
+  } else if (typeof indexedDB !== 'undefined') {
+    adapters.push(await getIndexedDBAdapter()); // fallback or web
   }
 
   adapters.push(getWebDAVAdapter());

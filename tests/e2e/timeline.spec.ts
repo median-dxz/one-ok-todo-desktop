@@ -169,17 +169,19 @@ test.describe('Timeline功能 E2E测试', () => {
       await addButton.click();
 
       // 等待对话框出现
-      await page.waitForSelector('[role="dialog"]', { timeout: 5000 });
+      await page.waitForSelector('[data-testid="task-node-dialog"]', { timeout: 5000 });
 
       // 填写任务信息
-      await page.locator('input[placeholder*="任务名称"]').fill('测试任务');
+      await page.locator('[data-testid="task-title-input"]').fill('测试任务');
 
-      // 提交按钮 - 使用 force 点击绕过遮挡问题
-      await page.locator('button:has-text("Add Task Node")').click({ force: true });
+      // 提交按钮 - 对话框内的"创建"按钮
+      await page.locator('[data-testid="task-node-submit-btn"]').click();
 
-      // TODO: 业务 Bug - 创建任务节点功能目前不工作
-      // 验证对话框可以打开并填写信息
-      // await expect(page.locator('text=测试任务')).toBeVisible();
+      // 验证对话框关闭
+      await expect(page.locator('[data-testid="task-node-dialog"]')).not.toBeVisible();
+
+      // 验证新节点出现在画布上
+      await expect(page.locator('[data-testid="task-node"]').filter({ hasText: '测试任务' })).toBeVisible();
     }
   });
 
