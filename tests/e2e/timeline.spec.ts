@@ -110,42 +110,28 @@ test.describe('Timeline功能 E2E测试', () => {
     }
   });
 
-  test('在时间线组内创建新时间线', async ({ page }) => {
+  test('通过悬浮按钮创建新时间线', async ({ page }) => {
     // 确保有选中的时间线组
     const group = page.locator('[data-swapy-item]').first();
     await group.click();
 
-    // 检查是否显示空状态，如果是则点击"新建"按钮
-    if (await page.locator('text=尚未选择时间线组').isVisible()) {
-      // 需要先选一个组
-      await page.locator('[data-swapy-item]').first().click();
-    }
+    // 使用 TimelineChatBubble 创建时间线
+    // 点击右下角的悬浮按钮打开聊天面板
+    await page.locator('[data-testid="timeline-chat-bubble-trigger"]').click();
 
-    if (await page.locator('text=创建一条时间线').isVisible()) {
-      await page.locator('button:has-text("新建")').click();
+    // 等待聊天面板出现
+    await expect(page.locator('text=AI Assistant')).toBeVisible();
 
-      // 等待对话框出现
-      await expect(page.locator('text=创建时间线')).toBeVisible();
+    // 输入时间线标题
+    const input = page.locator('[data-testid="timeline-chat-input"]');
+    const timelineName = '测试时间线 ' + Date.now();
+    await input.fill(timelineName);
 
-      // 输入时间线标题
-      const timelineName = '测试时间线 ' + Date.now();
-      await page.locator('input[placeholder*="时间线名称"]').fill(timelineName);
+    // 点击添加按钮
+    await page.locator('[data-testid="timeline-chat-submit"]').click();
 
-      // 保存
-      await page.locator('button:has-text("创建")').click();
-
-      // 验证时间线出现在视图中
-      await expect(page.locator(`text=${timelineName}`)).toBeVisible();
-    } else {
-      // 否则使用 TimelineChat
-      const input = page.locator('input[placeholder*="New timeline title"]');
-      const timelineName = '测试时间线 ' + Date.now();
-      await input.fill(timelineName);
-      await page.locator('button:has-text("Add Timeline")').click();
-
-      // 验证时间线出现在视图中
-      await expect(page.locator(`text=${timelineName}`)).toBeVisible();
-    }
+    // 验证时间线出现在视图中
+    await expect(page.locator(`text=${timelineName}`)).toBeVisible();
   });
 
   test('创建任务节点', async ({ page }) => {

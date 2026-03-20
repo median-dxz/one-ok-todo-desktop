@@ -22,6 +22,7 @@ import { LuPlus } from 'react-icons/lu';
 
 import { MemoDisplay } from '@/components/memo/MemoDisplay';
 import { EditTimelineGroupDialog } from '@/components/timeline/EditTimelineGroupDialog';
+import { TimelineChatBubble } from '@/components/timeline/TimelineChatBubble';
 import { TimelineDisplay } from '@/components/timeline/TimelineDisplay';
 import { TimelineGroupList } from '@/components/timeline/TimelineGroupList';
 import { Loading } from '@/components/ui/Loading';
@@ -204,6 +205,7 @@ function App() {
           >
             {view}
           </Presence>
+          {currentViewType === 'timeline' && <TimelineChatBubble />}
         </GridItem>
       </Grid>
     </>

@@ -1,6 +1,6 @@
 import { Editable, Flex, Heading, IconButton } from '@chakra-ui/react';
 import type { NodeMouseHandler } from '@xyflow/react';
-import { Controls, Panel, ReactFlow } from '@xyflow/react';
+import { Controls, ReactFlow } from '@xyflow/react';
 import { useState } from 'react';
 import { LuCheck, LuPencilLine, LuX } from 'react-icons/lu';
 
@@ -17,7 +17,6 @@ import { EmptyTimelineGroupScreen } from './EmptyTimelineGroupScreen';
 import { EmptyTimelineScreen } from './EmptyTimelineScreen';
 import { RightSidebar } from './RightPanel';
 import { TaskNodeComponent } from './TaskNodeComponent';
-import { TimelineChat } from './TimelineChat';
 
 export function TimelineDisplay() {
   const groupId = useAppStore((state) => state.selectedTimelineGroupId);
@@ -79,7 +78,7 @@ export function TimelineDisplay() {
           <Editable.Preview>
             <Heading>{group.title}</Heading>
           </Editable.Preview>
-          <Editable.Input />
+          <Editable.Input autoComplete="off" name={`timeline-title-${group.id}`} />
           <Editable.Control>
             <Editable.EditTrigger asChild>
               <IconButton variant="ghost" size="xs">
@@ -111,9 +110,6 @@ export function TimelineDisplay() {
           fitView
           panOnDrag={[1, 2]}
         >
-          <Panel position="bottom-center">
-            <TimelineChat />
-          </Panel>
           <Controls style={{ zIndex: 10 }} position="bottom-right" />
         </ReactFlow>
       </Flex>
