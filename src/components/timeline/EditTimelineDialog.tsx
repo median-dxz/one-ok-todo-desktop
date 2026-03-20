@@ -374,7 +374,9 @@ export const EditTimelineDialog = ({ timeline, disclosure }: EditTimelineDialogP
       onSubmit={handleSubmit}
       bodyProps={{ maxH: '60vh', overflowY: 'auto' }}
     >
-      <EditTimelineField edit={edit} setEdit={setEdit} fieldErrors={fieldErrors} />
+      <Box key={edit.type}>
+        <EditTimelineField edit={edit} setEdit={setEdit} fieldErrors={fieldErrors} />
+      </Box>
     </FormDialogShell>
   );
 };
