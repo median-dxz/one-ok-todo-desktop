@@ -106,12 +106,21 @@ const EditTaskTemplates = ({
           subtasks: [],
         },
       });
+      if (draft.pattern.currentIndex === undefined) {
+        draft.pattern.currentIndex = 0;
+      }
     });
   };
 
   const handleRemoveTemplate = (index: number) => {
     updateRecurrence((draft) => {
       draft.pattern.taskTemplates.splice(index, 1);
+      const { taskTemplates, currentIndex } = draft.pattern;
+      if (taskTemplates.length === 0) {
+        draft.pattern.currentIndex = undefined;
+      } else if (currentIndex !== undefined && currentIndex >= taskTemplates.length) {
+        draft.pattern.currentIndex = taskTemplates.length - 1;
+      }
     });
   };
 
@@ -140,69 +149,72 @@ const EditTaskTemplates = ({
     <Fieldset.Root invalid={fieldErrors.pattern !== undefined}>
       <VStack gap={4} align="stretch">
         <Text fontWeight="bold">任务模板</Text>
-      {edit.pattern.taskTemplates.map((template, index) => (
-        <Box key={index} p={4} borderWidth="1px" borderRadius="md">
-          <VStack gap={4} align="stretch">
-            <HStack justify="space-between">
-              <Text fontWeight="medium">模板 {index + 1}</Text>
-              <IconButton
-                aria-label="Remove template"
-                size="sm"
-                variant="ghost"
-                onClick={() => handleRemoveTemplate(index)}
-              >
-                <LuTrash2 />
-              </IconButton>
-            </HStack>
-            <Field.Root>
-              <Field.Label>标题</Field.Label>
-              <Input
-                value={template.title}
-                onChange={(e) =>
-                  updateTaskTemplates(index, (t) => {
-                    t.title = e.target.value;
-                  })
-                }
-              />
-            </Field.Root>
-            <Field.Root>
-              <Field.Label>描述</Field.Label>
-              <Textarea
-                value={template.content.description}
-                onChange={(e) =>
-                  updateTaskTemplates(index, (t) => {
-                    t.content.description = e.target.value;
-                  })
-                }
-              />
-            </Field.Root>
-            <VStack gap={2} align="stretch">
-              <Text>子任务</Text>
-              {template.content.subtasks.map((subtask, subIndex) => (
-                <HStack key={subtask.id}>
-                  <Input value={subtask.title} onChange={(e) => handleSubtaskChange(index, subIndex, e.target.value)} />
-                  <IconButton
-                    aria-label="Remove subtask"
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleRemoveSubtask(index, subIndex)}
-                  >
-                    <LuTrash2 />
-                  </IconButton>
-                </HStack>
-              ))}
-              <Button size="sm" variant="outline" onClick={() => handleAddSubtask(index)}>
-                <LuPlus />
-                添加子任务
-              </Button>
+        {edit.pattern.taskTemplates.map((template, index) => (
+          <Box key={index} p={4} borderWidth="1px" borderRadius="md">
+            <VStack gap={4} align="stretch">
+              <HStack justify="space-between">
+                <Text fontWeight="medium">模板 {index + 1}</Text>
+                <IconButton
+                  aria-label="Remove template"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => handleRemoveTemplate(index)}
+                >
+                  <LuTrash2 />
+                </IconButton>
+              </HStack>
+              <Field.Root>
+                <Field.Label>标题</Field.Label>
+                <Input
+                  value={template.title}
+                  onChange={(e) =>
+                    updateTaskTemplates(index, (t) => {
+                      t.title = e.target.value;
+                    })
+                  }
+                />
+              </Field.Root>
+              <Field.Root>
+                <Field.Label>描述</Field.Label>
+                <Textarea
+                  value={template.content.description}
+                  onChange={(e) =>
+                    updateTaskTemplates(index, (t) => {
+                      t.content.description = e.target.value;
+                    })
+                  }
+                />
+              </Field.Root>
+              <VStack gap={2} align="stretch">
+                <Text>子任务</Text>
+                {template.content.subtasks.map((subtask, subIndex) => (
+                  <HStack key={subtask.id}>
+                    <Input
+                      value={subtask.title}
+                      onChange={(e) => handleSubtaskChange(index, subIndex, e.target.value)}
+                    />
+                    <IconButton
+                      aria-label="Remove subtask"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleRemoveSubtask(index, subIndex)}
+                    >
+                      <LuTrash2 />
+                    </IconButton>
+                  </HStack>
+                ))}
+                <Button size="sm" variant="outline" onClick={() => handleAddSubtask(index)}>
+                  <LuPlus />
+                  添加子任务
+                </Button>
+              </VStack>
             </VStack>
-          </VStack>
-        </Box>
-      ))}
-      <Button onClick={handleAddTemplate}>
-        <LuPlus />
-        添加模板
-      </Button>
+          </Box>
+        ))}
+        <Button onClick={handleAddTemplate}>
+          <LuPlus />
+          添加模板
+        </Button>
       </VStack>
       <Fieldset.ErrorText>{fieldErrors.pattern}</Fieldset.ErrorText>
     </Fieldset.Root>

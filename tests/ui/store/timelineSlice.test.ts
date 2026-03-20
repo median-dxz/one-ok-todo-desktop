@@ -1,5 +1,7 @@
 import { useAppStore } from '@/store';
+import { createRecurrenceTimeline as createRecurrenceTimelineFactory } from '@/store/timelineSlice';
 import type { RecurrenceTimelineFlat, TaskTimelineFlat, TimelineGroupFlat } from '@/types/flat';
+import { RecurrenceTimelineDraftSchema } from '@/types/flat';
 import { nanoid } from 'nanoid';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -211,6 +213,59 @@ describe('timelineSlice Store测试', () => {
 
       const { selectedTimelineGroupId } = useAppStore.getState();
       expect(selectedTimelineGroupId).toBe(group2.id);
+    });
+  });
+
+  describe('循环时间线 taskTemplates 验证', () => {
+    it('创建循环时间线时，1 个模板应该有 currentIndex=0', () => {
+      const timeline = createRecurrenceTimelineFactory('测试循环');
+
+      expect(timeline.pattern.taskTemplates).toHaveLength(1);
+      expect(timeline.pattern.currentIndex).toBe(0);
+
+      const result = RecurrenceTimelineDraftSchema.safeParse(timeline);
+      expect(result.success).toBe(true);
+    });
+
+    it('创建循环时间线时，0 个模板应该有 currentIndex=undefined', () => {
+      const timeline = createRecurrenceTimelineFactory('测试循环');
+      timeline.pattern.taskTemplates = [];
+      timeline.pattern.currentIndex = undefined;
+
+      const result = RecurrenceTimelineDraftSchema.safeParse(timeline);
+      expect(result.success).toBe(true);
+    });
+
+    it('创建循环时间线时，2 个模板应该有有效的 currentIndex', () => {
+      const timeline = createRecurrenceTimelineFactory('测试循环');
+      timeline.pattern.taskTemplates.push({
+        title: 'Template 2',
+        content: { description: '', subtasks: [] },
+      });
+      timeline.pattern.currentIndex = 0;
+
+      expect(timeline.pattern.taskTemplates).toHaveLength(2);
+      expect(timeline.pattern.currentIndex).toBeGreaterThanOrEqual(0);
+      expect(timeline.pattern.currentIndex).toBeLessThan(2);
+
+      const result = RecurrenceTimelineDraftSchema.safeParse(timeline);
+      expect(result.success).toBe(true);
+    });
+
+    it('currentIndex 超出范围应该验证失败', () => {
+      const timeline = createRecurrenceTimelineFactory('测试循环');
+      timeline.pattern.currentIndex = 5;
+
+      const result = RecurrenceTimelineDraftSchema.safeParse(timeline);
+      expect(result.success).toBe(false);
+    });
+
+    it('有模板但无 currentIndex 应该验证失败', () => {
+      const timeline = createRecurrenceTimelineFactory('测试循环');
+      timeline.pattern.currentIndex = undefined;
+
+      const result = RecurrenceTimelineDraftSchema.safeParse(timeline);
+      expect(result.success).toBe(false);
     });
   });
 });

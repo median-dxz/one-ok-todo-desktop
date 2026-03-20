@@ -281,6 +281,7 @@ export const createRecurrenceTimeline = (title: string, groupId: string = ''): R
           },
         },
       ],
+      currentIndex: 0,
     },
     startDate: new Date(),
   };
