@@ -1,10 +1,12 @@
 'use client';
 
 import { useAppStore } from '@/store';
-import { ChakraProvider, defaultSystem } from '@chakra-ui/react';
+import { ChakraProvider, createSystem, defaultConfig } from '@chakra-ui/react';
 import { useEffect, type PropsWithChildren } from 'react';
 import { Toaster } from '../ui/Toaster';
 import { useShallow } from 'zustand/shallow';
+
+const system = createSystem(defaultConfig, {});
 
 export function Provider({ children }: PropsWithChildren) {
   const {
@@ -35,7 +37,7 @@ export function Provider({ children }: PropsWithChildren) {
   }, []);
 
   return (
-    <ChakraProvider value={defaultSystem}>
+    <ChakraProvider value={system}>
       {children}
       <Toaster />
     </ChakraProvider>

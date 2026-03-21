@@ -1,27 +1,25 @@
-import type { Subtask } from '@/types/timeline';
+import { FormDialogShell } from '@/components/ui/FormDialogShell';
+import { useZodFormValidation } from '@/hooks/useZodFormValidation';
 import type { TaskNodeDraft } from '@/types/flat';
 import { TaskNodeDraftSchema } from '@/types/flat';
-import { useZodFormValidation } from '@/hooks/useZodFormValidation';
-import { FormDialogShell } from '@/components/ui/FormDialogShell';
+import type { Subtask } from '@/types/timeline';
 import {
   Button,
   Checkbox,
   CheckboxGroup,
   Field,
   Fieldset,
-  HStack,
   IconButton,
   Input,
   Separator,
   Stack,
   Textarea,
-  VStack,
   type UseDialogReturn,
 } from '@chakra-ui/react';
 import { produce } from 'immer';
+import { nanoid } from 'nanoid';
 import React, { useCallback } from 'react';
 import { LuPlus, LuTrash2 } from 'react-icons/lu';
-import { nanoid } from 'nanoid';
 
 interface TaskNodeDialogBaseProps<T extends TaskNodeDraft> {
   disclosure: UseDialogReturn;
@@ -42,7 +40,7 @@ interface SubtaskItemProps {
 
 const SubtaskItem = React.memo(({ subtask, index, onUpdate, onDelete }: SubtaskItemProps) => {
   return (
-    <HStack gap={2}>
+    <Stack direction="row" gap={2}>
       <Checkbox.Root
         checked={subtask.done}
         onCheckedChange={(e) => {
@@ -67,7 +65,7 @@ const SubtaskItem = React.memo(({ subtask, index, onUpdate, onDelete }: SubtaskI
       <IconButton size="sm" variant="ghost" colorPalette="red" onClick={() => onDelete(index)}>
         <LuTrash2 />
       </IconButton>
-    </HStack>
+    </Stack>
   );
 });
 
@@ -161,8 +159,9 @@ export function TaskNodeDialogBase<T extends TaskNodeDraft>({
       submitText={saveButtonText}
       onSubmit={handleSubmit}
       contentProps={{ 'data-testid': 'task-node-dialog' }}
+      submitButtonProps={{ 'data-testid': 'task-node-submit-btn' }}
     >
-      <Stack gap={4}>
+      <Stack gap={4} p={2}>
         <Field.Root invalid={fieldErrors.title !== undefined}>
           <Field.Label>任务名称</Field.Label>
           <Input
@@ -183,18 +182,18 @@ export function TaskNodeDialogBase<T extends TaskNodeDraft>({
         <Separator />
         <Fieldset.Root invalid={fieldErrors.content !== undefined}>
           <Fieldset.Legend width="full">
-            <HStack justify="space-between" width="full">
+            <Stack justify="space-between" width="full">
               <span>子任务</span>
               <Button size="xs" onClick={handleAddSubtask}>
                 <LuPlus />
                 添加子任务
               </Button>
-            </HStack>
+            </Stack>
           </Fieldset.Legend>
           <CheckboxGroup>
             <Fieldset.Content>
               {content.subtasks?.length > 0 && (
-                <VStack align="stretch" gap={2} mt={2}>
+                <Stack align="stretch" gap={2} mt={2}>
                   {content.subtasks.map((subtask, index) => (
                     <SubtaskItem
                       key={subtask.id}
@@ -204,7 +203,7 @@ export function TaskNodeDialogBase<T extends TaskNodeDraft>({
                       onDelete={handleDeleteSubtask}
                     />
                   ))}
-                </VStack>
+                </Stack>
               )}
             </Fieldset.Content>
           </CheckboxGroup>
@@ -220,7 +219,6 @@ export function TaskNodeDialogBase<T extends TaskNodeDraft>({
             <Checkbox.Label>里程碑</Checkbox.Label>
           </Checkbox.Root>
         </Field.Root>
-        <Separator />
         {children}
       </Stack>
     </FormDialogShell>

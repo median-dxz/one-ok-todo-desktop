@@ -1,3 +1,5 @@
+import { FormDialogShell } from '@/components/ui/FormDialogShell';
+import { useZodFormValidation } from '@/hooks/useZodFormValidation';
 import { useAppStore } from '@/store';
 import { createRecurrenceTimeline } from '@/store/timelineSlice';
 import {
@@ -9,27 +11,23 @@ import {
 } from '@/types/flat';
 import type { RecurrenceFrequency, TimelineType } from '@/types/timeline';
 import type { FieldErrors } from '@/utils/zodHelpers';
-import { useZodFormValidation } from '@/hooks/useZodFormValidation';
-import { FormDialogShell } from '@/components/ui/FormDialogShell';
 import {
-  Box,
+  Accordion,
   Button,
   createListCollection,
   Field,
   Fieldset,
-  Flex,
-  HStack,
   IconButton,
   Input,
   RadioGroup,
   Select,
+  Stack,
   Text,
   Textarea,
-  VStack,
   type UseDialogReturn,
 } from '@chakra-ui/react';
-import { produce } from 'immer';
 import dayjs from 'dayjs';
+import { produce } from 'immer';
 import { nanoid } from 'nanoid';
 import type { Dispatch, SetStateAction } from 'react';
 import { useState } from 'react';
@@ -106,21 +104,12 @@ const EditTaskTemplates = ({
           subtasks: [],
         },
       });
-      if (draft.pattern.currentIndex === undefined) {
-        draft.pattern.currentIndex = 0;
-      }
     });
   };
 
   const handleRemoveTemplate = (index: number) => {
     updateRecurrence((draft) => {
       draft.pattern.taskTemplates.splice(index, 1);
-      const { taskTemplates, currentIndex } = draft.pattern;
-      if (taskTemplates.length === 0) {
-        draft.pattern.currentIndex = undefined;
-      } else if (currentIndex !== undefined && currentIndex >= taskTemplates.length) {
-        draft.pattern.currentIndex = taskTemplates.length - 1;
-      }
     });
   };
 
@@ -147,75 +136,102 @@ const EditTaskTemplates = ({
 
   return (
     <Fieldset.Root invalid={fieldErrors.pattern !== undefined}>
-      <VStack gap={4} align="stretch">
-        <Text fontWeight="bold">任务模板</Text>
+      <Fieldset.Legend fontWeight="bold">任务模板</Fieldset.Legend>
+      <Accordion.Root
+        collapsible
+        defaultValue={[`template-0`]}
+        mt={2}
+        variant="enclosed"
+        borderWidth="1px"
+        borderRadius="md"
+        bg="bg.panel"
+        focusRing="none"
+      >
         {edit.pattern.taskTemplates.map((template, index) => (
-          <Box key={index} p={4} borderWidth="1px" borderRadius="md">
-            <VStack gap={4} align="stretch">
-              <HStack justify="space-between">
-                <Text fontWeight="medium">模板 {index + 1}</Text>
-                <IconButton
-                  aria-label="Remove template"
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => handleRemoveTemplate(index)}
-                >
-                  <LuTrash2 />
-                </IconButton>
-              </HStack>
-              <Field.Root>
-                <Field.Label>标题</Field.Label>
-                <Input
-                  value={template.title}
-                  onChange={(e) =>
-                    updateTaskTemplates(index, (t) => {
-                      t.title = e.target.value;
-                    })
-                  }
-                />
-              </Field.Root>
-              <Field.Root>
-                <Field.Label>描述</Field.Label>
-                <Textarea
-                  value={template.content.description}
-                  onChange={(e) =>
-                    updateTaskTemplates(index, (t) => {
-                      t.content.description = e.target.value;
-                    })
-                  }
-                />
-              </Field.Root>
-              <VStack gap={2} align="stretch">
-                <Text>子任务</Text>
-                {template.content.subtasks.map((subtask, subIndex) => (
-                  <HStack key={subtask.id}>
+          <Accordion.Item key={index} value={`template-${index}`}>
+            <Accordion.ItemTrigger py={2}>
+              <Text flex="1" textAlign="left" fontSize="md">
+                {template.title || `模板 ${index + 1}`}
+              </Text>
+              <IconButton
+                role="button"
+                as="span"
+                aria-label="删除模板"
+                size="sm"
+                variant="ghost"
+                colorPalette="red"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemoveTemplate(index);
+                }}
+              >
+                <LuTrash2 />
+              </IconButton>
+              <Accordion.ItemIndicator />
+            </Accordion.ItemTrigger>
+            <Accordion.ItemContent>
+              <Accordion.ItemBody pt={1} pb={3}>
+                <Stack gap={3} align="stretch">
+                  <Field.Root>
+                    <Field.Label>标题</Field.Label>
                     <Input
-                      value={subtask.title}
-                      onChange={(e) => handleSubtaskChange(index, subIndex, e.target.value)}
-                    />
-                    <IconButton
-                      aria-label="Remove subtask"
                       size="sm"
-                      variant="ghost"
-                      onClick={() => handleRemoveSubtask(index, subIndex)}
-                    >
-                      <LuTrash2 />
-                    </IconButton>
-                  </HStack>
-                ))}
-                <Button size="sm" variant="outline" onClick={() => handleAddSubtask(index)}>
-                  <LuPlus />
-                  添加子任务
-                </Button>
-              </VStack>
-            </VStack>
-          </Box>
+                      value={template.title}
+                      onChange={(e) =>
+                        updateTaskTemplates(index, (t) => {
+                          t.title = e.target.value;
+                        })
+                      }
+                    />
+                  </Field.Root>
+                  <Field.Root>
+                    <Field.Label>描述</Field.Label>
+                    <Textarea
+                      size="sm"
+                      value={template.content.description}
+                      onChange={(e) =>
+                        updateTaskTemplates(index, (t) => {
+                          t.content.description = e.target.value;
+                        })
+                      }
+                    />
+                  </Field.Root>
+                  <Stack gap={2} align="stretch">
+                    <Text fontSize="sm" fontWeight="medium">
+                      子任务
+                    </Text>
+                    {template.content.subtasks.map((subtask, subIndex) => (
+                      <Stack direction="row" key={subtask.id}>
+                        <Input
+                          size="sm"
+                          value={subtask.title}
+                          onChange={(e) => handleSubtaskChange(index, subIndex, e.target.value)}
+                        />
+                        <IconButton
+                          aria-label="Remove subtask"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleRemoveSubtask(index, subIndex)}
+                        >
+                          <LuTrash2 />
+                        </IconButton>
+                      </Stack>
+                    ))}
+                    <Button size="sm" variant="outline" onClick={() => handleAddSubtask(index)}>
+                      <LuPlus />
+                      添加子任务
+                    </Button>
+                  </Stack>
+                </Stack>
+              </Accordion.ItemBody>
+            </Accordion.ItemContent>
+          </Accordion.Item>
         ))}
-        <Button onClick={handleAddTemplate}>
-          <LuPlus />
-          添加模板
-        </Button>
-      </VStack>
+      </Accordion.Root>
+      <Button onClick={handleAddTemplate} mt={2}>
+        <LuPlus />
+        添加模板
+      </Button>
       <Fieldset.ErrorText>{fieldErrors.pattern}</Fieldset.ErrorText>
     </Fieldset.Root>
   );
@@ -246,9 +262,9 @@ const EditTimelineField = ({ edit, setEdit, fieldErrors }: EditTimelineFieldProp
   };
 
   return (
-    <>
+    <Stack align="stretch" gap={4} p={2}>
       <Field.Root invalid={fieldErrors.title !== undefined}>
-        <Field.Label>时间线名称</Field.Label>
+        <Field.Label fontWeight="bold">时间线名称</Field.Label>
         <Input placeholder="输入时间线名称" value={edit.title} onChange={(e) => updateTitle(e.target.value)} />
         <Field.ErrorText>{fieldErrors.title}</Field.ErrorText>
       </Field.Root>
@@ -257,9 +273,9 @@ const EditTimelineField = ({ edit, setEdit, fieldErrors }: EditTimelineFieldProp
         value={edit.type}
         onValueChange={(e) => e.value && handleTypeChange(e.value as TimelineType)}
       >
-        <Flex flexDir="column" gap={2}>
-          <Text>时间线类型</Text>
-          <HStack>
+        <Stack align="stretch" gap={2}>
+          <Text fontWeight="bold">时间线类型</Text>
+          <Stack direction="row">
             <RadioGroup.Item value="task">
               <RadioGroup.ItemHiddenInput />
               <RadioGroup.ItemIndicator />
@@ -270,14 +286,14 @@ const EditTimelineField = ({ edit, setEdit, fieldErrors }: EditTimelineFieldProp
               <RadioGroup.ItemIndicator />
               <RadioGroup.ItemText>循环</RadioGroup.ItemText>
             </RadioGroup.Item>
-          </HStack>
-        </Flex>
+          </Stack>
+        </Stack>
       </RadioGroup.Root>
 
       {edit.type === 'recurrence' && (
         <>
           <Field.Root invalid={fieldErrors.startDate !== undefined}>
-            <Field.Label>开始日期</Field.Label>
+            <Field.Label fontWeight="bold">开始日期</Field.Label>
             <Input
               type="date"
               value={dayjs(edit.startDate).format('YYYY-MM-DD')}
@@ -303,10 +319,10 @@ const EditTimelineField = ({ edit, setEdit, fieldErrors }: EditTimelineFieldProp
               }}
             >
               <Select.HiddenSelect />
-              <Select.Label>Select frequency</Select.Label>
+              <Select.Label fontWeight="bold">选择频率</Select.Label>
               <Select.Control>
                 <Select.Trigger>
-                  <Select.ValueText placeholder="Select frequency" />
+                  <Select.ValueText placeholder="选择频率" />
                 </Select.Trigger>
                 <Select.IndicatorGroup>
                   <Select.Indicator />
@@ -328,7 +344,7 @@ const EditTimelineField = ({ edit, setEdit, fieldErrors }: EditTimelineFieldProp
           <EditTaskTemplates edit={edit} setEdit={setEdit} fieldErrors={fieldErrors} />
         </>
       )}
-    </>
+    </Stack>
   );
 };
 
@@ -372,11 +388,8 @@ export const EditTimelineDialog = ({ timeline, disclosure }: EditTimelineDialogP
       title={isEditMode ? '编辑时间线' : '创建时间线'}
       submitText={isEditMode ? '保存' : '创建'}
       onSubmit={handleSubmit}
-      bodyProps={{ maxH: '60vh', overflowY: 'auto' }}
     >
-      <Box key={edit.type}>
-        <EditTimelineField edit={edit} setEdit={setEdit} fieldErrors={fieldErrors} />
-      </Box>
+      <EditTimelineField key={edit.type} edit={edit} setEdit={setEdit} fieldErrors={fieldErrors} />
     </FormDialogShell>
   );
 };

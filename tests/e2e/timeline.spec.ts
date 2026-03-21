@@ -221,13 +221,14 @@ test.describe('Timeline功能 E2E测试', () => {
       const secondBox = await secondGroup.boundingBox();
 
       if (firstBox && secondBox) {
+        await firstGroup.hover();
         await page.mouse.move(firstBox.x + firstBox.width / 2, firstBox.y + firstBox.height / 2);
         await page.mouse.down();
-        await page.waitForTimeout(800);
-        await page.mouse.move(secondBox.x + secondBox.width / 2, secondBox.y + secondBox.height / 2, { steps: 20 });
-        await page.waitForTimeout(200);
-        await page.mouse.up();
         await page.waitForTimeout(500);
+        await page.mouse.move(secondBox.x + secondBox.width / 2, secondBox.y + secondBox.height / 2, { steps: 30 });
+        await page.waitForTimeout(300);
+        await page.mouse.up();
+        await page.waitForTimeout(1000);
 
         const newFirstText = await groups.first().textContent();
         expect(newFirstText).not.toBe(firstText);

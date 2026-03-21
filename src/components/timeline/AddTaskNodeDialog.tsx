@@ -1,4 +1,4 @@
-import { Field, RadioGroup, Stack, type UseDialogReturn } from '@chakra-ui/react';
+import { Field, RadioGroup, Separator, Stack, type UseDialogReturn } from '@chakra-ui/react';
 import { useMemo, useState } from 'react';
 
 import { UniversalErrorDialog } from '@/components/ui/UniversalErrorDialog';
@@ -48,6 +48,7 @@ export const AddTaskNodeDialog = ({ sourceNode, disclosure }: AddTaskNodeDialogP
       saveButtonText="创建"
       onSubmit={handleSubmit}
     >
+      <Separator />
       <Field.Root>
         <Field.Label>插入位置</Field.Label>
         <RadioGroup.Root value={insertMode} onValueChange={(details) => setInsertMode(details.value as InsertMode)}>

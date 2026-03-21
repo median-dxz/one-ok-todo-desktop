@@ -131,12 +131,11 @@ export const RecurrenceTimelineSchema = z.object({
       // 长度为一时为单任务
       taskTemplates: z.array(RecurrenceTaskTemplateSchema),
       // 当前轮换位置
-      currentIndex: z.number().optional(),
+      currentIndex: z.number(),
     })
     .refine(
       ({ taskTemplates, currentIndex }) => {
-        if (currentIndex === undefined && taskTemplates.length === 0) return true;
-        return currentIndex !== undefined && currentIndex >= 0 && currentIndex < taskTemplates.length;
+        return currentIndex >= 0 && currentIndex < taskTemplates.length;
       },
       {
         message: 'currentIndex 必须在 taskTemplates 数组范围内',
