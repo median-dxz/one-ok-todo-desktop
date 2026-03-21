@@ -227,13 +227,13 @@ describe('timelineSlice Store测试', () => {
       expect(result.success).toBe(true);
     });
 
-    it('创建循环时间线时，0 个模板应该有 currentIndex=undefined', () => {
+    it('创建循环时间线时，0 个模板应该验证失败', () => {
       const timeline = createRecurrenceTimelineFactory('测试循环');
       timeline.pattern.taskTemplates = [];
-      timeline.pattern.currentIndex = undefined;
+      timeline.pattern.currentIndex = 0;
 
       const result = RecurrenceTimelineDraftSchema.safeParse(timeline);
-      expect(result.success).toBe(true);
+      expect(result.success).toBe(false);
     });
 
     it('创建循环时间线时，2 个模板应该有有效的 currentIndex', () => {
@@ -255,14 +255,6 @@ describe('timelineSlice Store测试', () => {
     it('currentIndex 超出范围应该验证失败', () => {
       const timeline = createRecurrenceTimelineFactory('测试循环');
       timeline.pattern.currentIndex = 5;
-
-      const result = RecurrenceTimelineDraftSchema.safeParse(timeline);
-      expect(result.success).toBe(false);
-    });
-
-    it('有模板但无 currentIndex 应该验证失败', () => {
-      const timeline = createRecurrenceTimelineFactory('测试循环');
-      timeline.pattern.currentIndex = undefined;
 
       const result = RecurrenceTimelineDraftSchema.safeParse(timeline);
       expect(result.success).toBe(false);

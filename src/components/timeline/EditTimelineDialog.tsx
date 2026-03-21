@@ -1,4 +1,5 @@
 import { FormDialogShell } from '@/components/ui/FormDialogShell';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { useZodFormValidation } from '@/hooks/useZodFormValidation';
 import { useAppStore } from '@/store';
 import { createRecurrenceTimeline } from '@/store/timelineSlice';
@@ -32,6 +33,8 @@ import { nanoid } from 'nanoid';
 import type { Dispatch, SetStateAction } from 'react';
 import { useState } from 'react';
 import { LuPlus, LuTrash2 } from 'react-icons/lu';
+
+const MIN_TEMPLATES = 1;
 
 const frequencyCollection = createListCollection({
   items: [
@@ -111,6 +114,7 @@ const EditTaskTemplates = ({
   };
 
   const handleRemoveTemplate = (index: number) => {
+    if (edit.pattern.taskTemplates.length <= MIN_TEMPLATES) return;
     updateRecurrence((draft) => {
       draft.pattern.taskTemplates.splice(index, 1);
       if (draft.pattern.currentIndex >= draft.pattern.taskTemplates.length) {
@@ -162,20 +166,23 @@ const EditTaskTemplates = ({
               <Text flex="1" textAlign="left" fontSize="md">
                 {template.title || `模板 ${index + 1}`}
               </Text>
-              <IconButton
-                role="button"
-                as="span"
-                aria-label="删除模板"
-                size="sm"
-                variant="ghost"
-                colorPalette="red"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRemoveTemplate(index);
-                }}
-              >
-                <LuTrash2 />
-              </IconButton>
+              <Tooltip content="至少需要保留一个任务模板" disabled={edit.pattern.taskTemplates.length > MIN_TEMPLATES}>
+                <IconButton
+                  role="button"
+                  as="span"
+                  aria-label="删除模板"
+                  size="sm"
+                  variant="ghost"
+                  colorPalette="red"
+                  disabled={edit.pattern.taskTemplates.length <= MIN_TEMPLATES}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemoveTemplate(index);
+                  }}
+                >
+                  <LuTrash2 />
+                </IconButton>
+              </Tooltip>
               <Accordion.ItemIndicator />
             </Accordion.ItemTrigger>
             <Accordion.ItemContent>
