@@ -110,6 +110,9 @@ const EditTaskTemplates = ({
   const handleRemoveTemplate = (index: number) => {
     updateRecurrence((draft) => {
       draft.pattern.taskTemplates.splice(index, 1);
+      if (draft.pattern.currentIndex >= draft.pattern.taskTemplates.length) {
+        draft.pattern.currentIndex = Math.max(0, draft.pattern.taskTemplates.length - 1);
+      }
     });
   };
 
@@ -228,6 +231,44 @@ const EditTaskTemplates = ({
           </Accordion.Item>
         ))}
       </Accordion.Root>
+      <Field.Root mt={2}>
+        <Select.Root
+          collection={createListCollection({
+            items: edit.pattern.taskTemplates.map((t, i) => ({
+              label: t.title || `模板 ${i + 1}`,
+              value: String(i),
+            })),
+          })}
+          value={[String(edit.pattern.currentIndex)]}
+          onValueChange={(e) => {
+            const index = parseInt(e.value[0] ?? '0', 10);
+            updateRecurrence((draft) => {
+              draft.pattern.currentIndex = index;
+            });
+          }}
+        >
+          <Select.HiddenSelect />
+          <Select.Label fontWeight="bold">起始任务</Select.Label>
+          <Select.Control>
+            <Select.Trigger>
+              <Select.ValueText placeholder="选择起始任务" />
+            </Select.Trigger>
+            <Select.IndicatorGroup>
+              <Select.Indicator />
+            </Select.IndicatorGroup>
+          </Select.Control>
+          <Select.Positioner>
+            <Select.Content>
+              {edit.pattern.taskTemplates.map((t, i) => (
+                <Select.Item key={i} item={{ label: t.title || `模板 ${i + 1}`, value: String(i) }}>
+                  {t.title || `模板 ${i + 1}`}
+                  <Select.ItemIndicator />
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select.Positioner>
+        </Select.Root>
+      </Field.Root>
       <Button onClick={handleAddTemplate} mt={2}>
         <LuPlus />
         添加模板
