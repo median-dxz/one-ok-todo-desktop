@@ -75,6 +75,8 @@ const EditTaskTemplates = ({
   setEdit: Dispatch<SetStateAction<TimelineDraft>>;
   fieldErrors: FieldErrors;
 }) => {
+  const [expandedValue, setExpandedValue] = useState<string[]>([`template-0`]);
+
   const updateRecurrence = (updater: (draft: RecurrenceTimelineDraft) => void) => {
     setEdit(
       produce((draft) => {
@@ -105,6 +107,7 @@ const EditTaskTemplates = ({
         },
       });
     });
+    setExpandedValue([`template-${edit.pattern.taskTemplates.length}`]);
   };
 
   const handleRemoveTemplate = (index: number) => {
@@ -114,6 +117,8 @@ const EditTaskTemplates = ({
         draft.pattern.currentIndex = Math.max(0, draft.pattern.taskTemplates.length - 1);
       }
     });
+    const lastIndex = Math.max(0, edit.pattern.taskTemplates.length - 2);
+    setExpandedValue([`template-${lastIndex}`]);
   };
 
   const handleAddSubtask = (templateIndex: number) => {
@@ -142,7 +147,8 @@ const EditTaskTemplates = ({
       <Fieldset.Legend fontWeight="bold">任务模板</Fieldset.Legend>
       <Accordion.Root
         collapsible
-        defaultValue={[`template-0`]}
+        value={expandedValue}
+        onValueChange={(e) => setExpandedValue(e.value)}
         mt={2}
         variant="enclosed"
         borderWidth="1px"
