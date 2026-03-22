@@ -37,7 +37,10 @@ export function createAppStore(storage: PersistStorage<PersistedAppData> = appSt
           version: 1,
           // 从存储恢复状态后的回调
           merge: (persisted, currentState) => {
-            const p = persisted as PersistedAppData; // TODO: 了解实际行为与边界情况
+            if (!persisted) {
+              return currentState;
+            }
+            const p = persisted as PersistedAppData;
             const flat = flattenPersistedData(p.timelineGroups);
             return {
               ...currentState,
