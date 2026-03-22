@@ -11,7 +11,6 @@ import type {
   DelimiterNode,
   NodeStatus,
   RecurrenceTaskInstance,
-  RecurrenceTimeline,
   TaskNode,
   TaskTimeline,
   Timeline,
@@ -262,30 +261,6 @@ export const createTimelineSlice: StateCreator<
       }
     }),
 });
-
-export const createRecurrenceTimeline = (title: string, groupId: string = ''): RecurrenceTimeline => {
-  return {
-    id: nanoid(),
-    title,
-    type: 'recurrence',
-    groupId,
-    completedTasks: [],
-    frequency: 'daily',
-    pattern: {
-      taskTemplates: [
-        {
-          title: 'Recurrence Task',
-          content: {
-            subtasks: [],
-            description: '',
-          },
-        },
-      ],
-      currentIndex: 0,
-    },
-    startDate: new Date(),
-  };
-};
 
 // ─── Selectors ───
 
