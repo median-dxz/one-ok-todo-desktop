@@ -93,6 +93,7 @@ export function TaskNodeComponent({ data: node, selected }: NodeProps<RFNode<Tas
       return LuCircle;
     }
   })();
+  
   return (
     <>
       <Handle type="target" position={Position.Left} />

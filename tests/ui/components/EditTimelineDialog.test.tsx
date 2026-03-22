@@ -126,7 +126,7 @@ describe('EditTimelineDialog 组件综合测试', () => {
   });
 
   describe('状态切换与保存集成行为 (State Toggling Flows)', () => {
-    it('场景一：任务 -> 循环 -> 任务 保存 (应保留原有 nodeOrder 等基础字段)', async () => {
+    it('任务 -> 循环 -> 任务 保存 (应保留原有 nodeOrder 等基础字段)', async () => {
       setupStore({
         timelines: { [mockTaskTimeline.id]: mockTaskTimeline },
         nodes: { [startDelimiterId]: mockStartDelimiter },
@@ -155,7 +155,7 @@ describe('EditTimelineDialog 组件综合测试', () => {
       expect(saved).not.toHaveProperty('pattern');
     });
 
-    it('场景二：任务 -> 循环 保存 (应初始化循环模板字段，并丢弃 nodeOrder)', async () => {
+    it('任务 -> 循环 保存 (应初始化循环模板字段，并丢弃 nodeOrder)', async () => {
       setupStore({
         timelines: { [mockTaskTimeline.id]: mockTaskTimeline },
         nodes: { [startDelimiterId]: mockStartDelimiter },
@@ -176,7 +176,7 @@ describe('EditTimelineDialog 组件综合测试', () => {
       expect(saved).not.toHaveProperty('nodeOrder'); // 转换为循环后应丢弃独立 task 特有字段
     });
 
-    it('场景三：循环 -> 任务 -> 循环 保存 (应保留并重建 pattern 等循环字段)', async () => {
+    it('循环 -> 任务 -> 循环 保存 (应保留并重建 pattern 等循环字段)', async () => {
       setupStore({
         groups: { [mockGroup.id]: { ...mockGroup, timelineOrder: ['recurrence-timeline'] } },
         timelines: { [mockRecurrenceTimeline.id]: mockRecurrenceTimeline },
@@ -203,7 +203,7 @@ describe('EditTimelineDialog 组件综合测试', () => {
       expect(saved.pattern.taskTemplates[0].title).toBe('任务模板');
     });
 
-    it('场景四：循环 -> 任务 保存 (应丢弃循环特有的 pattern 等字段并初始化 nodeOrder)', async () => {
+    it('循环 -> 任务 保存 (应丢弃循环特有的 pattern 等字段并初始化 nodeOrder)', async () => {
       setupStore({
         groups: { [mockGroup.id]: { ...mockGroup, timelineOrder: ['recurrence-timeline'] } },
         timelines: { [mockRecurrenceTimeline.id]: mockRecurrenceTimeline },
