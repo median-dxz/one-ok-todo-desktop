@@ -1,4 +1,4 @@
-import { Box, Button, HStack, Input, Portal, VStack } from '@chakra-ui/react';
+import { Box, Button, HStack, Input, Portal, Presence, VStack } from '@chakra-ui/react';
 import { useState } from 'react';
 import { LuMessageSquare, LuPlus, LuX } from 'react-icons/lu';
 import { useAppStore } from '@/store';
@@ -43,8 +43,13 @@ export function TimelineChatBubble() {
         </Button>
       </Box>
 
-      {isOpen && (
-        <Portal>
+      <Portal>
+        <Presence
+          present={isOpen}
+          animationName={{ _open: 'slide-from-bottom, fade-in', _closed: 'slide-to-bottom, fade-out' }}
+          animationDuration="moderate"
+          unmountOnExit
+        >
           <Box
             position="fixed"
             bottom="96px"
@@ -56,11 +61,6 @@ export function TimelineChatBubble() {
               rounded: 'xl',
               boxShadow: '2xl',
               overflow: 'hidden',
-              animation: 'slideUp 0.2s ease-out',
-              '@keyframes slideUp': {
-                '0%': { opacity: '0', transform: 'translateY(10px)' },
-                '100%': { opacity: '1', transform: 'translateY(0)' },
-              },
             }}
           >
             <VStack gap={0} align="stretch">
@@ -98,8 +98,8 @@ export function TimelineChatBubble() {
               </Box>
             </VStack>
           </Box>
-        </Portal>
-      )}
+        </Presence>
+      </Portal>
     </>
   );
 }
