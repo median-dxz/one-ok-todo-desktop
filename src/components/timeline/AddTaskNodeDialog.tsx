@@ -58,11 +58,13 @@ export const AddTaskNodeDialog = ({ sourceNode, disclosure }: AddTaskNodeDialogP
               <RadioGroup.ItemIndicator />
               <RadioGroup.ItemText>之后</RadioGroup.ItemText>
             </RadioGroup.Item>
-            <RadioGroup.Item value={'before' satisfies InsertMode}>
-              <RadioGroup.ItemHiddenInput />
-              <RadioGroup.ItemIndicator />
-              <RadioGroup.ItemText>之前</RadioGroup.ItemText>
-            </RadioGroup.Item>
+            {sourceNode.type !== 'delimiter' && (
+              <RadioGroup.Item value={'before' satisfies InsertMode}>
+                <RadioGroup.ItemHiddenInput />
+                <RadioGroup.ItemIndicator />
+                <RadioGroup.ItemText>之前</RadioGroup.ItemText>
+              </RadioGroup.Item>
+            )}
           </Stack>
         </RadioGroup.Root>
       </Field.Root>
