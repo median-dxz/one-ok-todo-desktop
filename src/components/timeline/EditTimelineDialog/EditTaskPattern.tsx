@@ -49,8 +49,10 @@ export function EditTaskPattern({ state, onUpdate, fieldErrors }: EditTaskPatter
     if (state.taskTemplates.length <= MIN_TEMPLATES) return;
     onUpdate((draft) => {
       draft.taskTemplates.splice(index, 1);
-      if (draft.currentIndex >= draft.taskTemplates.length) {
-        draft.currentIndex = Math.max(0, draft.taskTemplates.length - 1);
+      if (index < draft.currentIndex) {
+        draft.currentIndex -= 1; // 删除了前面的项，游标前移
+      } else if (index === draft.currentIndex) {
+        draft.currentIndex = 0; // 删除了当前项，重置
       }
     });
     setExpandedValue([`template-${Math.max(0, state.taskTemplates.length - 2)}`]);

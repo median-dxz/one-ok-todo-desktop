@@ -19,16 +19,17 @@ import {
 import { produce } from 'immer';
 import { nanoid } from 'nanoid';
 import React, { useCallback } from 'react';
+import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import { LuPlus, LuTrash2 } from 'react-icons/lu';
 
 interface TaskNodeDialogBaseProps<T extends TaskNodeDraft> {
   disclosure: UseDialogReturn;
   title: string;
   nodeDraft: T;
-  setNodeDraft: React.Dispatch<React.SetStateAction<T>>;
+  setNodeDraft: Dispatch<SetStateAction<T>>;
   saveButtonText: string;
   onSubmit: (validatedData: T) => void;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }
 
 interface SubtaskItemProps {

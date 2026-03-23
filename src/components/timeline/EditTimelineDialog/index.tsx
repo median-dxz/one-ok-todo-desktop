@@ -44,12 +44,14 @@ export function EditTimelineDialog({ timeline, disclosure }: EditTimelineDialogP
       const result = validate(TimelineDraftSchema, currentDraft);
       if (!result.success) return;
 
+      let targetGroupId = selectedGroupId;
       if (timeline) {
         // edit mode but type changed
         deleteTimeline(timeline.id);
+        targetGroupId = timeline.groupId;
       }
 
-      addTimeline(selectedGroupId, result.data);
+      addTimeline(targetGroupId, result.data);
     }
 
     disclosure.setOpen(false);
